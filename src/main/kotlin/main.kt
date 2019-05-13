@@ -7,111 +7,22 @@ import io.vertx.core.http.ServerWebSocket
 
 import com.streaming.status.*
 import com.streaming.jsonResponse.*
+import java.util.concurrent.atomic.AtomicLong
 
-
-fun handleAuth(data: Buffer) = StatusFactory.error("unimplemented", FFMPEGStream.Invalid())
-
-fun handleData(ws: ServerWebSocket, status: Status, data: Buffer): Status {
-    println(data.toString() + " " + status)
+fun sendMusic(ws: ServerWebSocket, stream: FFMPEGStream.Valid): Long {
+    var buf: ByteArray = ByteArray(1024) // 1 KiB
+    val rc = stream.ogg.read(buf)
     val resp = Buffer.buffer()
-    val jResp = parse(resp.toString())
-    return when (jResp) {
-        is Response.Error-> {
-            resp.appendString(jResp.msg)
-            ws.write(resp)
-            ws.close()
-            StatusFactory.error(jResp.msg)
-        }
-
-        is Response.Auth-> {
-            resp.appendString("Successfully auth")
-            ws.write(resp)
-            StatusFactory.done(Payload.Invalid())
-        }
-
-        is Status.Idle-> {
-            // either close
-            // continue sending
-            // request new song
-            // or error
-            when(jResp){
-                is Response.Close -> {
-                    ws.close()
-                    when(status.stream){
-                        is FFMPEGStream.Valid -> StatusFactory.closed(status.stream as FFMPEGStream.Valid)
-                        else -> StatusFactory.error("Closed an invalid connection", status.stream)
-                    }
-                }
-                is Response.NewSong -> {
-                    StatusFactory.error("not implemented", status.stream) // TODO FIXME
-                }
-                is Response.Error -> {
-                    resp.appendString(jResp.msg)
-                    ws.write(resp)
-                    StatusFactory.error(jResp.msg, status.stream)
-                }
-                else -> {
-                    resp.appendString("Wrong status")
-                    ws.write(resp)
-                    ws.close()
-                    StatusFactory.error("Wrong status transition: Idle -> ", status.stream) // FIXME
-                }
-            }
-        }
-
-        is Status.Send-> {
-            val file = "Implement"; val command = "Film"
-            val oggStream: FFMPEGStream = when(status.stream){
-                is FFMPEGStream.Valid -> status.stream as FFMPEGStream.Valid
-                else -> createFFMPEGStream(file, command)
-            }
-            when(oggStream){
-                is FFMPEGStream.Valid ->
-                    StatusFactory.send(Payload.Song("", 0.0, QUALITY.HIGH), oggStream)
-                else -> StatusFactory.error("Can't into ffmpeg", status.stream)
-            }
-        }
-        is Status.Done-> {
-            // can only request new songs
-            // or close
-            when(jResp){
-                is Response.Close -> {
-                    ws.close()
-                    StatusFactory.error("Closed an invalid connection", status.stream)
-                }
-                is Response.NewSong -> {
-                    StatusFactory.error("not implemented", status.stream) // TODO FIXME
-                }
-                is Response.Error -> {
-                    resp.appendString(jResp.msg)
-                    ws.write(resp)
-                    StatusFactory.error(jResp.msg, status.stream)
-                }
-                else -> {
-                    resp.appendString("Wrong status")
-                    ws.write(resp)
-                    ws.close()
-                    StatusFactory.error("Wrong status transition: Idle -> ", status.stream) // FIXME
-                }
-            }
-        }
-
-        /*
-        is Status.Closed-> {
-            {assert(false); StatusFactory.error("Impossible", status.stream)}
-        }
-         */
-
-        else -> {assert(false); StatusFactory.error("Impossible", status.stream)}
-    }
-
+    resp.setBytes(0, buf)
+    ws.write(resp)
+    return 1024
 }
-
 fun logic(vertx: Vertx, ws: ServerWebSocket){
 
-    var status: Status = StatusFactory.waitingAuth()
-    val command = "ffmpeg -i " + "file" + " -f ogg -q 5 pipe:1"
-    val file = "implement"
+    var status: Status = mutateStatus.noAuth()
+    var auth = false
+    var nHandler: AtomicLong = AtomicLong(0)
+    var owner: AtomicLong = AtomicLong(0) // Handler that keeps ownership of the socket
 
     ws.closeHandler({ ch ->
         println("Closing ws-connection to client " + ws.textHandlerID())
@@ -119,29 +30,43 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
 
     ws.handler(object:Handler<Buffer> {
         override fun handle(data:Buffer) {
-            status = handleData(ws, status, data)
+            val id = nHandler.incrementAndGet()
+            val action = parse(data.toString())
 
-            loop@ while(status is Status.Send){
-                val resp = Buffer.buffer()
-                val oggStream: FFMPEGStream.Valid = when(status.stream){
-                    is FFMPEGStream.Valid -> status.stream as FFMPEGStream.Valid
-                    else -> break@loop
+            loop@while(true){
+                status = when(status){
+                    is Status.SongPlaying -> {
+                        val old: Status.SongPlaying = status as Status.SongPlaying
+                        when(action){
+                            is Response.NewSong -> {
+                                if(owner.get() == id){
+                                    // this is the owner of the stream, continue playing
+                                    val rc = sendMusic(ws, old.stream)
+                                    if(rc >= 2048 * 1024){ // 2 MiB
+                                        status = mutateStatus.paused(old)
+                                        break@loop
+                                    }
+                                    else mutateStatus.playing(old, rc)
+                                } else {
+                                    // a new song was requested
+                                    // change owner to this and start sending in next iteration
+                                    owner.set(id)
+                                    mutateStatus.newSong(old, action.uri, action.startTime, action.quality())
+                                }
+                            }
+                            is Response.Continue -> mutateStatus.playing(old, 0)
+                            is Response.Pause -> mutateStatus.paused(old)
+                            is Response.Close -> mutateStatus.closed(old)
+                            else -> mutateStatus.error(old, "Invalid operation")
+                        }
+                    }
                 }
-                val song: Payload.Song = when(status.payload) {
-                    is Payload.Song -> status.payload as Payload.Song
-                    else -> break@loop
-                }
-                var buf: ByteArray = ByteArray(1024) // 1 KiB
-                val rc = oggStream.ogg.read(buf)
-                resp.setBytes(0, buf)
-                ws.write(resp)
-                oggStream.size++
-                if(oggStream.size >= 2048)
-                    status = StatusFactory.idle(song, oggStream)
-                }
+
+                if(owner.get() != id)
+                    break
             }
         }
-    )
+    })
 }
 
 fun main(args: Array<String>){
@@ -168,24 +93,3 @@ fun main(args: Array<String>){
         println(("Failed to bind!"))
     } })
 }
-
-
-/*
-val msg = data.getString(0, data.length())
-println("Message from ws-client " + ws.textHandlerID()+ ": " + msg)
-val resp = Buffer.buffer()
-
-var size = 0
-val file = "/home/user/train.flac"
-while(status == "send") {
-    var buf: ByteArray = ByteArray(1024) // 1 KiB
-    val rc = oggStream.read(buf)
-    resp.setBytes(0, buf)
-    ws.write(resp)
-    size++
-    if(size >= 2048)
-        status = "idle"
-}
-
-}
- */

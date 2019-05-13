@@ -8,19 +8,12 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import com.streaming.status.*
+import io.vertx.kotlin.ext.healthchecks.statusOf
 
-/*
-val qualityEnum = when(quality){
-    "high" -> QUALITY.HIGH
-    "medium" -> QUALITY.MEDIUM
-    "low" -> QUALITY.LOW
-}
-*/
-enum class STATUS { IDLE, SEND, ERROR, WAITING, DONE, CLOSED } // SEARCH
 enum class QUALITY { HIGH, MEDIUM, LOW }
 
 open class FFMPEGStream private constructor() {
-    data class Valid(val file: String, val proc: Process, val ogg: InputStream, var size: Int = 0): FFMPEGStream()
+    data class Valid(val proc: Process, val ogg: InputStream, val consumed: Long): FFMPEGStream()
     class Invalid(): FFMPEGStream()
 }
 
@@ -28,96 +21,80 @@ fun createFFMPEGStream(file: String, command: String): FFMPEGStream{
     val proc = command.runCommand(File("/home/user")) // TODO/FIXME: hardcoded path
     return when(proc){
         null ->  FFMPEGStream.Invalid()
-        else -> FFMPEGStream.Valid(file, proc, proc.inputStream, 0)
+        else -> FFMPEGStream.Valid(proc, proc.inputStream, 0)
     }
 }
 
-open class Payload private constructor() { // private constructor to prevent creating more subclasses outside
-    data class Song(val uri: String, val startTime: Double, val quality: QUALITY) : Payload()
-    class Error(msg: String) : Payload()
-    class WaitingAuth() : Payload()
+val command = "ffmpeg -i " + "file" + " -f ogg -q 5 pipe:1"
+open class Status private constructor() { // private constructor to prevent creating more subclasses outside
+    data class SongPlaying(val uri: String, val startTime: Double, val quality: QUALITY, val stream: FFMPEGStream.Valid, val consumed: Long) : Status()
+    data class SongPaused(val uri: String, val time: Double, val quality: QUALITY, val stream: FFMPEGStream.Valid) : Status()
+    class Waiting() : Status()
+    class Closed(): Status()
+    class Error(msg: String) : Status()
+    class NoAuth() : Status()
 }
 
-abstract class Status private constructor() {
-    abstract val authenticated: Boolean
-    abstract val status: STATUS
-    abstract val payload: Payload
-    abstract val stream: FFMPEGStream
-
-    class Idle(_song: Payload.Song, override val stream: FFMPEGStream) : Status() {
-        override val authenticated = true
-        override val status = STATUS.IDLE
-        override val payload = _song
-    }
-
-    class Send(_song: Payload.Song, override val stream: FFMPEGStream): Status(){
-        override val authenticated = true
-        override val status = STATUS.SEND
-        override val payload = _song
-    }
-
-    class Error(msg: String) : Status() {
-        override val authenticated = false // TODO: understand if should always change to false or not
-        override val status = STATUS.ERROR
-        override val stream = FFMPEGStream.Invalid()
-        override val payload = Payload.Error(msg)
-    }
-
-    class WaitingAuth: Status {
-        override val authenticated = false
-        override val status = STATUS.WAITING
-        override val payload = Payload.WaitingAuth()
-        override val stream = FFMPEGStream.Invalid()
-
-        constructor(oldStream: FFMPEGStream) {
-            if (oldStream is FFMPEGStream.Valid)
-                oldStream.kill()
-        }
-    }
-
-    class Done(override val stream: FFMPEGStream.Invalid): Status() {
-        override val authenticated = false
-        override val status = STATUS.DONE
-        override val payload = Payload.WaitingAuth()
-    }
-
-    class Closed(override val stream: FFMPEGStream.Invalid): Status() {
-        override val authenticated = true
-        override val status = STATUS.CLOSED
-        override val payload = Payload.Error("Connection was closed")
-    }
-}
-
-object StatusFactory {
-    fun waitingAuth(ffmpegStream: FFMPEGStream): Status.WaitingAuth {
-        return Status.WaitingAuth(ffmpegStream)
-    }
-    fun waitingAuth(): Status.WaitingAuth {
-        return Status.WaitingAuth(FFMPEGStream.Invalid())
-    }
-    fun done(ffmpegStream: FFMPEGStream): Status.Done {
-        when(ffmpegStream){
-            is FFMPEGStream.Valid -> ffmpegStream.kill()
-            else -> {}
-        }
-        return Status.Done(FFMPEGStream.Invalid())
-    }
-    fun error(msg: String, stream: FFMPEGStream): Status.Error {
-        when(stream){
-            is FFMPEGStream.Valid -> { assert(stream.proc.isAlive == false); stream.kill() }
-            else -> {}
-        }
+object mutateStatus {
+    fun error(old: Status.SongPaused, msg: String): Status.Error {
+        old.stream.kill()
         return Status.Error(msg)
     }
-    fun idle(song: Payload.Song, stream: FFMPEGStream.Valid): Status.Idle {
-        return Status.Idle(song, stream)
+    fun error(old: Status.SongPlaying, msg: String): Status.Error {
+        old.stream.kill()
+        return Status.Error(msg)
     }
-    fun send(song: Payload.Song, stream: FFMPEGStream.Valid): Status.Send {
-        return Status.Send(song, stream)
+    fun error(old: Status.Waiting, msg: String): Status.Error {
+        return Status.Error(msg)
     }
-    fun closed(stream: FFMPEGStream.Valid): Status.Closed {
-        stream.kill()
-        return Status.Closed(FFMPEGStream.Invalid())
+    fun closed(old: Status): Status.Closed {
+        when(old){
+            is Status.SongPlaying -> old.stream.kill()
+            is Status.SongPaused -> old.stream.kill()
+            else -> {}
+        }
+        return Status.Closed()
+    }
+    fun waiting(old: Status.Waiting): Status.Waiting {
+        return old
+    }
+    fun waiting(old: Status.SongPlaying): Status.Waiting {
+        old.stream.kill()
+        return Status.Waiting()
+    }
+    private fun newSong(uri: String, start: Double, quality: QUALITY): Status{
+        val stream = createFFMPEGStream(uri, command)
+        return when (stream) {
+            is FFMPEGStream.Valid -> Status.SongPlaying(uri, start, quality, stream, 0)
+            else -> Status.Error("ffmpeg error")
+        }
+    }
+    fun newSong(old: Status.SongPlaying, uri: String, start: Double, quality: QUALITY): Status{
+        old.stream.kill()
+        return newSong(uri, start, quality)
+    }
+    fun newSong(old: Status.SongPaused, uri: String, start: Double, quality: QUALITY): Status{
+        old.stream.kill()
+        return newSong(uri, start, quality)
+    }
+    fun playing(old: Status.SongPlaying, consumed: Long): Status.SongPlaying {
+        return Status.SongPlaying(old.uri, old.startTime, old.quality, old.stream, consumed)
+    }
+    fun playing(old: Status.SongPaused): Status.SongPlaying{
+        return Status.SongPlaying(old.uri, old.time, old.quality, old.stream, old.stream.consumed)
+    }
+    fun playing(old: Status.Waiting, uri: String, start: Double, quality: QUALITY): Status{
+        // either error or playing
+        return mutateStatus.newSong(uri, start, quality)
+    }
+    fun paused(old: Status.SongPlaying): Status.SongPaused {
+        return Status.SongPaused(old.uri, old.startTime, old.quality, old.stream)
+    }
+    fun paused(old: Status.SongPaused): Status.SongPaused {
+        return Status.SongPaused(old.uri, old.time, old.quality, old.stream)
+    }
+    fun noAuth(): Status.NoAuth {
+        return Status.NoAuth()
     }
 }
 

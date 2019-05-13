@@ -2,6 +2,7 @@ package com.streaming.jsonResponse
 
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
+import com.streaming.status.QUALITY
 
 fun parse(resp: String): Response{
     val parser = Parser.default()
@@ -12,6 +13,7 @@ fun parse(resp: String): Response{
     val action = j.string("action")
     return when(action){
         "close" -> Response.Close()
+        "pause" -> Response.Pause()
         "auth" -> {
             val user = j.string("user")
             val pass = j.string("password")
@@ -43,8 +45,17 @@ fun parse(resp: String): Response{
 // TODO SEARCH
 open class Response private constructor() {
     class NewSong(val uri: String, val startTime: Double, val quality: String): Response()
+    class Pause(): Response()
     class Error(val msg: String): Response()
     class Close(): Response()
     class Continue(): Response()
     class Auth(): Response()
+}
+
+fun Response.NewSong.quality(): QUALITY{
+    return when(this.quality){
+        "high" -> QUALITY.HIGH
+        "low" -> QUALITY.LOW
+        else -> QUALITY.MEDIUM
+    }
 }
