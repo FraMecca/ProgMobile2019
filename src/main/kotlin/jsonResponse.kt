@@ -50,6 +50,7 @@ open class Response private constructor() {
     class Close(): Response()
     class Continue(): Response()
     class Auth(): Response()
+    class Processed(): Response()
 }
 
 fun Response.NewSong.quality(): QUALITY{

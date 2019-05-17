@@ -77,10 +77,10 @@ object mutateStatus {
         old.stream.kill()
         return newSong(uri, start, quality)
     }
-    fun playing(old: Status.SongPlaying, consumed: Long): Status.SongPlaying {
+    fun continuePlaying(old: Status.SongPlaying, consumed: Long): Status.SongPlaying {
         return Status.SongPlaying(old.uri, old.startTime, old.quality, old.stream, consumed)
     }
-    fun playing(old: Status.SongPaused): Status.SongPlaying{
+    fun continuePlaying(old: Status.SongPaused): Status.SongPlaying{
         return Status.SongPlaying(old.uri, old.time, old.quality, old.stream, old.stream.consumed)
     }
     fun playing(old: Status.Waiting, uri: String, start: Double, quality: QUALITY): Status{
