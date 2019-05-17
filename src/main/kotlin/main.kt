@@ -31,39 +31,64 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
     ws.handler(object:Handler<Buffer> {
         override fun handle(data:Buffer) {
             val id = nHandler.incrementAndGet()
-            val action = parse(data.toString())
+            var action = parse(data.toString())
+
 
             loop@while(true){
-                status = when(status){
+                status = when(status) {
                     is Status.SongPlaying -> {
                         val old: Status.SongPlaying = status as Status.SongPlaying
-                        when(action){
-                            is Response.NewSong -> {
-                                if(owner.get() == id){
+                        when (action) {
+                            is Response.Processed -> { // the old response
+                                if (owner.get() == id) {
                                     // this is the owner of the stream, continue playing
                                     val rc = sendMusic(ws, old.stream)
-                                    if(rc >= 2048 * 1024){ // 2 MiB
+                                    if (rc >= 2048 * 1024) { // 2 MiB
                                         status = mutateStatus.paused(old)
                                         break@loop
-                                    }
-                                    else mutateStatus.playing(old, rc)
+                                    } else
+                                        mutateStatus.continuePlaying(old, rc)
                                 } else {
-                                    // a new song was requested
-                                    // change owner to this and start sending in next iteration
-                                    owner.set(id)
-                                    mutateStatus.newSong(old, action.uri, action.startTime, action.quality())
+                                    status = mutateStatus.waiting(old)
+                                    break@loop
                                 }
                             }
-                            is Response.Continue -> mutateStatus.playing(old, 0)
+                            is Response.NewSong -> {
+                                // a new song was requested
+                                // change owner to this and start sending in next iteration
+                                owner.set(id)
+                                mutateStatus.newSong(old, action.uri, action.startTime, action.quality())
+                            }
+                            is Response.Continue -> mutateStatus.continuePlaying(old, 0)
                             is Response.Pause -> mutateStatus.paused(old)
                             is Response.Close -> mutateStatus.closed(old)
                             else -> mutateStatus.error(old, "Invalid operation")
                         }
                     }
+                    is Status.SongPaused -> {
+                        val old: Status.SongPaused = status as Status.SongPaused
+                        when (action) {
+                            is Response.NewSong -> mutateStatus.newSong(old, action.uri, action.startTime, action.quality())
+                            is Response.Close -> mutateStatus.closed(old)
+                            else -> mutateStatus.error(old, "Invalid operation")
+                        }
+                    }
+                    is Status.Waiting -> {
+                        val old: Status.Waiting = status as Status.Waiting
+                        when (action) {
+                            is Response.NewSong -> mutateStatus.playing(old, action.uri, action.startTime, action.quality())
+                            is Response.Close -> mutateStatus.closed(old)
+                            else -> mutateStatus.error(old, "Invalid operation")
+                        }
+                    }
+                    is Status.Error -> break@loop
+                    is Status.Closed -> break@loop
+                    else ->
                 }
 
                 if(owner.get() != id)
-                    break
+                    break@loop
+                action = Response.Processed()
             }
         }
     })

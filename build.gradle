@@ -10,7 +10,9 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    jcenter()
 }
+
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
@@ -19,6 +21,7 @@ dependencies {
     compile "io.vertx:vertx-lang-kotlin:3.7.0"
     compile group: 'ws.schild', name: 'jave-core', version: '2.4.6'
     compile "ws.schild:jave-native-linux64:2.4.6"
+    implementation 'com.beust:klaxon:5.0.1'
 }
 
 compileKotlin {
