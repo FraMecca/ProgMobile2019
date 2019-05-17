@@ -31,7 +31,7 @@ open class Status private constructor() { // private constructor to prevent crea
     data class SongPaused(val uri: String, val time: Double, val quality: QUALITY, val stream: FFMPEGStream.Valid) : Status()
     class Waiting() : Status()
     class Closed(): Status()
-    class Error(msg: String) : Status()
+    class Error(val msg: String) : Status()
     class NoAuth() : Status()
 }
 
@@ -45,6 +45,9 @@ object mutateStatus {
         return Status.Error(msg)
     }
     fun error(old: Status.Waiting, msg: String): Status.Error {
+        return Status.Error(msg)
+    }
+    fun error(msg: String): Status.Error {
         return Status.Error(msg)
     }
     fun closed(old: Status): Status.Closed {
@@ -77,15 +80,14 @@ object mutateStatus {
         old.stream.kill()
         return newSong(uri, start, quality)
     }
+    fun newSong(old: Status.Waiting, uri: String, start: Double, quality: QUALITY): Status{
+        return newSong(uri, start, quality)
+    }
     fun continuePlaying(old: Status.SongPlaying, consumed: Long): Status.SongPlaying {
         return Status.SongPlaying(old.uri, old.startTime, old.quality, old.stream, consumed)
     }
     fun continuePlaying(old: Status.SongPaused): Status.SongPlaying{
         return Status.SongPlaying(old.uri, old.time, old.quality, old.stream, old.stream.consumed)
-    }
-    fun playing(old: Status.Waiting, uri: String, start: Double, quality: QUALITY): Status{
-        // either error or playing
-        return mutateStatus.newSong(uri, start, quality)
     }
     fun paused(old: Status.SongPlaying): Status.SongPaused {
         return Status.SongPaused(old.uri, old.startTime, old.quality, old.stream)
@@ -95,6 +97,14 @@ object mutateStatus {
     }
     fun noAuth(): Status.NoAuth {
         return Status.NoAuth()
+    }
+    fun invalidAction(old: Status): Status.Error {
+        when(old){
+            is Status.SongPaused -> old.stream.kill()
+            is Status.SongPlaying -> old.stream.kill()
+            else -> {}
+        }
+        return Status.Error("Invalid action")
     }
 }
 

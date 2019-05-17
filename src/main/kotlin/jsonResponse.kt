@@ -19,13 +19,8 @@ fun parse(resp: String): Response{
             val pass = j.string("password")
             if(user == null || pass == null)
                 Response.Error("Invalid auth request")
-            else{
-                if(user == "mario" && pass == "rossi") // TODO FIXME
-                    Response.Auth()
-                else
-                    Response.Error("invalid credentials")
-            }
-
+            else
+                Response.Auth(user, pass)
         }
         "continue" -> Response.Continue()
         "new-song" -> {
@@ -49,8 +44,7 @@ open class Response private constructor() {
     class Error(val msg: String): Response()
     class Close(): Response()
     class Continue(): Response()
-    class Auth(): Response()
-    class Processed(): Response()
+    class Auth(val user:String, val pass: String): Response()
 }
 
 fun Response.NewSong.quality(): QUALITY{
