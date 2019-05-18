@@ -31,12 +31,12 @@ fun goodbye(ws: ServerWebSocket){
     val resp = Buffer.buffer()
     resp.appendString("goodbye")
     ws.write(resp)
+    ws.close()
 }
 
 fun logic(vertx: Vertx, ws: ServerWebSocket){
 
     var status: Status = mutateStatus.noAuth()
-    var auth = false
     var nHandler: AtomicLong = AtomicLong(0)
     var owner: AtomicLong = AtomicLong(0) // track handler that keeps ownership of the socket
 
@@ -135,6 +135,7 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
                     }
                     else -> mutateStatus.invalidAction(old)
                 }
+                if(!(status is Status.SongPlaying || status is Status.SongPaused)) break@loop
             }
         }
     })
