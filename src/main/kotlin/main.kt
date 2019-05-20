@@ -6,7 +6,8 @@ import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.ServerWebSocket
 
 import com.streaming.status.*
-import com.streaming.jsonResponse.*
+import com.streaming.request.*
+import com.streaming.response.*
 import java.util.concurrent.atomic.AtomicLong
 
 fun sendMusic(ws: ServerWebSocket, stream: FFMPEGStream.Valid): Int {
@@ -18,13 +19,15 @@ fun sendMusic(ws: ServerWebSocket, stream: FFMPEGStream.Valid): Int {
     return rc
 }
 
-fun authenticateUser(data: Response.Auth): Status{
+fun authenticateUser(data: Request.Auth): Pair<Status, Response>{
     val user = data.user
     val pass = data.pass
     if(user == "mario" && pass == "rossi") // TODO FIXME
-        return Status.Waiting()
-    else
-        return Status.Error("invalid credentials")
+        return Pair(Status.Waiting(), Response.SuccessfulAuth())
+    else {
+        val error = "invalid credentials"
+        return Pair(Status.Error(error), Response.Error(error))
+    }
 }
 
 fun goodbye(ws: ServerWebSocket){
@@ -67,57 +70,69 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
             val action = parse(data.toString())
 
             println("Entering handler with: " + status +" got: "+ data+" parsed as: " + action)
-            status = when(action){
-                is Response.Auth -> {
+            val res: Pair<Status, Response>  = when(action){
+                is Request.Auth -> {
                     when(status){
                         is Status.NoAuth -> authenticateUser(action)
-                        else -> mutateStatus.invalidAction(status)
+                        else -> Pair(mutateStatus.invalidAction(status), Response.InvalidAction())
                     }
                 }
-                is Response.Close -> {
-                    goodbye(ws)
-                    mutateStatus.closed(status)
-                }
-                is Response.Continue -> {
+                is Request.Close -> Pair(mutateStatus.closed(status), Response.Close())
+                is Request.Continue -> {
                     val old = status
                     when(old){
-                        is Status.SongPlaying -> mutateStatus.continuePlaying(old, 0)
+                        is Status.SongPlaying -> Pair(mutateStatus.continuePlaying(old, 0), Response.Ok())
                         is Status.SongPaused -> {
                             owner.set(id)
-                            mutateStatus.continuePlaying(old)
+                            Pair(mutateStatus.continuePlaying(old), Response.Ok())
                         }
-                        else -> mutateStatus.invalidAction(old)
+                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
                     }
                 }
-                is Response.Error -> {
+                is Request.Error -> {
                     val old = status
                     when(old){
-                        is Status.SongPlaying -> mutateStatus.error(old, action.msg)
-                        is Status.SongPaused -> mutateStatus.error(old, action.msg)
-                        is Status.Waiting -> mutateStatus.error(old, action.msg)
-                        else -> mutateStatus.invalidAction(old)
+                        is Status.SongPlaying -> Pair(mutateStatus.error(old, action.msg), Response.Error(action.msg))
+                        is Status.SongPaused -> Pair(mutateStatus.error(old, action.msg), Response.Error(action.msg))
+                        is Status.Waiting -> Pair(mutateStatus.error(old, action.msg), Response.Error(action.msg))
+                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
                     }
                 }
-                is Response.NewSong -> {
+                is Request.NewSong -> {
                     val old = status
                     when (old){
-                        is Status.SongPlaying -> mutateStatus.newSong(old, action.uri, action.startTime, action.quality())
-                        is Status.SongPaused -> mutateStatus.newSong(old, action.uri, action.startTime, action.quality())
-                        is Status.Waiting -> mutateStatus.newSong(old, action.uri, action.startTime, action.quality())
-                        else -> mutateStatus.invalidAction(old)
+                        is Status.SongPlaying -> Pair(
+                            mutateStatus.newSong(old, action.uri, action.startTime, action.quality()),
+                            Response.Song(SongMetadata(action.uri), action.quality)
+                        )
+                        is Status.SongPaused -> Pair(
+                            mutateStatus.newSong(old, action.uri, action.startTime, action.quality()),
+                            Response.Ok()
+                        )
+                        is Status.Waiting -> Pair(
+                            mutateStatus.newSong(old, action.uri, action.startTime, action.quality()),
+                            Response.Ok()
+                        )
+                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
                     }
                 }
-                is Response.Pause -> {
+                is Request.Pause -> {
                     val old = status
                     when(old){
-                        is Status.SongPlaying -> mutateStatus.paused(old)
-                        is Status.SongPaused -> mutateStatus.paused(old)  // ignore
-                        else -> mutateStatus.invalidAction(old)
+                        is Status.SongPlaying -> Pair(mutateStatus.paused(old), Response.Ok())
+                        is Status.SongPaused -> Pair(mutateStatus.paused(old), Response.Ok())
+                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
                     }
                 }
-                else -> {  println(action); assert(false); mutateStatus.invalidAction(status) } // why do you want an else branch!?!?
+                else -> {  println(action); assert(false);
+                    Pair(mutateStatus.invalidAction(status), Response.InvalidAction()) } // why do you want an else branch!?!?
             }
-            println("Exiting first when with: " + status)
+            println("Exiting first when with: " + res.first)
+            status = res.first
+            val response = res.second
+
+            // reply
+            reply(ws, response)
 
             loop@while(owner.get() == id){
                 println("looping: " + status)
