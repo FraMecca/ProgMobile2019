@@ -9,13 +9,13 @@ import com.streaming.status.*
 import com.streaming.jsonResponse.*
 import java.util.concurrent.atomic.AtomicLong
 
-fun sendMusic(ws: ServerWebSocket, stream: FFMPEGStream.Valid): Long {
+fun sendMusic(ws: ServerWebSocket, stream: FFMPEGStream.Valid): Int {
     var buf: ByteArray = ByteArray(1024) // 1 KiB
     val rc = stream.ogg.read(buf)
     val resp = Buffer.buffer()
     resp.setBytes(0, buf)
     ws.write(resp)
-    return 1024
+    return rc
 }
 
 fun authenticateUser(data: Response.Auth): Status{
@@ -60,10 +60,13 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
 
     ws.handler(object:Handler<Buffer> {
         override fun handle(data:Buffer) {
+
             val id = nHandler.incrementAndGet()
+            if(id.equals(1))
+                owner.set(id)
             val action = parse(data.toString())
 
-
+            println("Entering handler with: " + status +" got: "+ data+" parsed as: " + action)
             status = when(action){
                 is Response.Auth -> {
                     when(status){
@@ -114,8 +117,10 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
                 }
                 else -> {  println(action); assert(false); mutateStatus.invalidAction(status) } // why do you want an else branch!?!?
             }
+            println("Exiting first when with: " + status)
 
             loop@while(owner.get() == id){
+                println("looping: " + status)
                 val old = status
                 status = when(old){
                     is Status.SongPlaying -> {
@@ -137,6 +142,7 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
                 }
                 if(!(status is Status.SongPlaying || status is Status.SongPaused)) break@loop
             }
+            println("Exiting second when with: " + status)
         }
     })
 }
@@ -145,12 +151,13 @@ fun main(args: Array<String>){
     val vertx = Vertx.vertx()
     val server = vertx.createHttpServer()
 
-    server.websocketHandler({ ws->
+    server.websocketHandler({ ws ->
         println(ws.toString())
 
         logic(vertx, ws)
+    })
 
-    server.listen(8080, { res-> if (res.succeeded()) {
+    server.listen(8080, "0.0.0.0", { res-> if (res.succeeded()) {
         println("Listening...")
     }else{
         println(("Failed to bind!"))

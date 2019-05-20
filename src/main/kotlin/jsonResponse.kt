@@ -1,22 +1,27 @@
 package com.streaming.jsonResponse
 
-import com.beust.klaxon.JsonObject
-import com.beust.klaxon.Parser
 import com.streaming.status.QUALITY
+import io.vertx.core.json.*
 
 fun parse(resp: String): Response{
-    val parser = Parser.default()
-    val j = parser.parse(resp) as JsonObject
-    if(j.string("action") == null){
+    var j: JsonObject
+    try {
+        j = JsonObject(resp)
+    } catch(e: Exception){
+        println(e)
+        return Response.Error("Invalid Json")
+    }
+    if(j.getString("action") == null){
+        println("return")
         return Response.Error("No action in response")
     }
-    val action = j.string("action")
+    val action = j.getString("action")
     return when(action){
         "close" -> Response.Close()
         "pause" -> Response.Pause()
         "auth" -> {
-            val user = j.string("user")
-            val pass = j.string("password")
+            val user = j.getString("user")
+            val pass = j.getString("password")
             if(user == null || pass == null)
                 Response.Error("Invalid auth request")
             else
@@ -24,9 +29,9 @@ fun parse(resp: String): Response{
         }
         "continue" -> Response.Continue()
         "new-song" -> {
-            val uri = j.string("uri")
-            val quality = j.string("quality")
-            val startTime = j.double("startTime")
+            val uri = j.getString("uri")
+            val quality = j.getString("quality")
+            val startTime = j.getDouble("startTime")
             if(startTime == null || quality == null || uri == null){
                 return Response.Error("Invalid json request for new-song action")
             } else {

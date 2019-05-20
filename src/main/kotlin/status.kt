@@ -13,7 +13,7 @@ import io.vertx.kotlin.ext.healthchecks.statusOf
 enum class QUALITY { HIGH, MEDIUM, LOW }
 
 open class FFMPEGStream private constructor() {
-    data class Valid(val proc: Process, val ogg: InputStream, val consumed: Long): FFMPEGStream()
+    data class Valid(val proc: Process, val ogg: InputStream, val consumed: Int): FFMPEGStream()
     class Invalid(): FFMPEGStream()
 }
 
@@ -27,7 +27,7 @@ fun createFFMPEGStream(file: String, command: String): FFMPEGStream{
 
 val command = "ffmpeg -i " + "file" + " -f ogg -q 5 pipe:1"
 open class Status private constructor() { // private constructor to prevent creating more subclasses outside
-    data class SongPlaying(val uri: String, val startTime: Double, val quality: QUALITY, val stream: FFMPEGStream.Valid, val consumed: Long) : Status()
+    data class SongPlaying(val uri: String, val startTime: Double, val quality: QUALITY, val stream: FFMPEGStream.Valid, val consumed: Int) : Status()
     data class SongPaused(val uri: String, val time: Double, val quality: QUALITY, val stream: FFMPEGStream.Valid) : Status()
     class Waiting() : Status()
     class Closed(): Status()
@@ -83,7 +83,7 @@ object mutateStatus {
     fun newSong(old: Status.Waiting, uri: String, start: Double, quality: QUALITY): Status{
         return newSong(uri, start, quality)
     }
-    fun continuePlaying(old: Status.SongPlaying, consumed: Long): Status.SongPlaying {
+    fun continuePlaying(old: Status.SongPlaying, consumed: Int): Status.SongPlaying {
         return Status.SongPlaying(old.uri, old.startTime, old.quality, old.stream, consumed)
     }
     fun continuePlaying(old: Status.SongPaused): Status.SongPlaying{
