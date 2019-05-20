@@ -19,9 +19,6 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     compile "io.vertx:vertx-core:3.7.0"
     compile "io.vertx:vertx-lang-kotlin:3.7.0"
-    compile group: 'ws.schild', name: 'jave-core', version: '2.4.6'
-    compile "ws.schild:jave-native-linux64:2.4.6"
-    implementation 'com.beust:klaxon:5.0.1'
 }
 
 compileKotlin {
