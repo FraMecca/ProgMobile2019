@@ -7,7 +7,7 @@ import io.vertx.core.buffer.Buffer
 
 open class Response private constructor() {
     class Song(val metadata: SongMetadata, val quality: String): Response()
-    class Stream(val bytes: ByteArray)
+    class Stream(val bytes: ByteArray): Response()
     class Error(val msg: String): Response()
     class Close(): Response()
     class Ok(): Response()
@@ -30,6 +30,10 @@ fun reply(ws: ServerWebSocket, response: Response){
             "response" to "song",
             "metadata" to response.metadata.toJson(),
             "quality" to response.quality
+        )
+        is Response.Stream -> hashMapOf(
+            "response" to "stream",
+            "buf" to response.bytes // should be encoded automatically when put into VertX.JSONObj
         )
         is Response.SuccessfulAuth -> hashMapOf(
             "response" to "auth"

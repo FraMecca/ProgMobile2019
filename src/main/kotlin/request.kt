@@ -19,6 +19,7 @@ fun parse(resp: String): Request{
     return when(action){
         "close" -> Request.Close()
         "pause" -> Request.Pause()
+        "error" -> Request.Error(j.getString("msg"))
         "auth" -> {
             val user = j.getString("user")
             val pass = j.getString("password")
@@ -31,7 +32,7 @@ fun parse(resp: String): Request{
         "new-song" -> {
             val uri = j.getString("uri")
             val quality = j.getString("quality")
-            val startTime = j.getDouble("startTime")
+            val startTime = j.getDouble("start-time")
             if(startTime == null || quality == null || uri == null){
                 return Request.Error("Invalid json request for new-song action")
             } else {

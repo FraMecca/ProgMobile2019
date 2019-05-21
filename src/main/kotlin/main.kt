@@ -13,9 +13,8 @@ import java.util.concurrent.atomic.AtomicLong
 fun sendMusic(ws: ServerWebSocket, stream: FFMPEGStream.Valid): Int {
     var buf: ByteArray = ByteArray(1024) // 1 KiB
     val rc = stream.ogg.read(buf)
-    val resp = Buffer.buffer()
-    resp.setBytes(0, buf)
-    ws.write(resp)
+    val resp = Response.Stream(buf)
+    reply(ws, resp)
     return rc
 }
 
@@ -70,7 +69,7 @@ fun logic(vertx: Vertx, ws: ServerWebSocket){
             val action = parse(data.toString())
 
             println("Entering handler with: " + status +" got: "+ data+" parsed as: " + action)
-            val res: Pair<Status, Response>  = when(action){
+            val res: Pair<Status, Response> = when(action){
                 is Request.Auth -> {
                     when(status){
                         is Status.NoAuth -> authenticateUser(action)
@@ -172,7 +171,9 @@ fun main(args: Array<String>){
         logic(vertx, ws)
     })
 
-    server.listen(8080, "0.0.0.0", { res-> if (res.succeeded()) {
+    val host = "127.0.0.1"
+//    val host = "0.0.0.0"
+    server.listen(8080, host, { res-> if (res.succeeded()) {
         println("Listening...")
     }else{
         println(("Failed to bind!"))
