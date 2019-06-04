@@ -1,181 +1,192 @@
 package com.streaming.main
 
-import io.vertx.core.Handler
 import io.vertx.core.Vertx
+import io.vertx.core.http.*
 import io.vertx.core.buffer.Buffer
-import io.vertx.core.http.ServerWebSocket
-
-import com.streaming.status.*
+import io.vertx.core.json.JsonObject
+import java.io.IOException
 import com.streaming.request.*
 import com.streaming.response.*
-import java.util.concurrent.atomic.AtomicLong
+import java.security.MessageDigest
+import java.io.File
 
-fun sendMusic(ws: ServerWebSocket, stream: FFMPEGStream.Valid): Int {
-    var buf: ByteArray = ByteArray(1024) // 1 KiB
-    val rc = stream.ogg.read(buf)
-    val resp = Response.Stream(buf)
-    reply(ws, resp)
-    return rc
-}
+///// CONSTANTS
+val DATABASE = "/home/user/.mpd/database"
+val WORKDIR = File("/tmp/mozapp/")
+val LIBRARY = File("/media/asparagi/vibbra/")
 
-fun authenticateUser(data: Request.Auth): Pair<Status, Response>{
-    val user = data.user
-    val pass = data.pass
-    if(user == "mario" && pass == "rossi") // TODO FIXME
-        return Pair(Status.Waiting(), Response.SuccessfulAuth())
-    else {
-        val error = "invalid credentials"
-        return Pair(Status.Error(error), Response.Error(error))
-    }
-}
+val audioFiles = mutableMapOf("bottom" to 0)
 
-fun goodbye(ws: ServerWebSocket){
-    val resp = Buffer.buffer()
-    resp.appendString("goodbye")
-    ws.write(resp)
-    ws.close()
-}
-
-fun logic(vertx: Vertx, ws: ServerWebSocket){
-
-    var status: Status = mutateStatus.noAuth()
-    var nHandler: AtomicLong = AtomicLong(0)
-    var owner: AtomicLong = AtomicLong(0) // track handler that keeps ownership of the socket
-
-    if(ws.path() != "/"){
-        status = mutateStatus.error("Invalid path")
-        val resp = Buffer.buffer()
-        resp.appendString(status.msg)
-        ws.write(resp)
-        ws.close()
-    } else {
-        println("Websocket-handshake...")
-        println("path = " + ws.path())
-        println("uri = " + ws.uri())
-        println("localAdress = " + ws.localAddress().toString())
-        println("remoteAddress = " + ws.remoteAddress())
-    }
-
-    ws.closeHandler({ ch ->
-        println("Closing ws-connection to client " + ws.textHandlerID())
-    })
-
-    ws.handler(object:Handler<Buffer> {
-        override fun handle(data:Buffer) {
-
-            val id = nHandler.incrementAndGet()
-            if(id.equals(1))
-                owner.set(id)
-            val action = parse(data.toString())
-
-            println("Entering handler with: " + status +" got: "+ data+" parsed as: " + action)
-            val res: Pair<Status, Response> = when(action){
-                is Request.Auth -> {
-                    when(status){
-                        is Status.NoAuth -> authenticateUser(action)
-                        else -> Pair(mutateStatus.invalidAction(status), Response.InvalidAction())
-                    }
-                }
-                is Request.Close -> Pair(mutateStatus.closed(status), Response.Close())
-                is Request.Continue -> {
-                    val old = status
-                    when(old){
-                        is Status.SongPlaying -> Pair(mutateStatus.continuePlaying(old, 0), Response.Ok())
-                        is Status.SongPaused -> {
-                            owner.set(id)
-                            Pair(mutateStatus.continuePlaying(old), Response.Ok())
-                        }
-                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
-                    }
-                }
-                is Request.Error -> {
-                    val old = status
-                    when(old){
-                        is Status.SongPlaying -> Pair(mutateStatus.error(old, action.msg), Response.Error(action.msg))
-                        is Status.SongPaused -> Pair(mutateStatus.error(old, action.msg), Response.Error(action.msg))
-                        is Status.Waiting -> Pair(mutateStatus.error(old, action.msg), Response.Error(action.msg))
-                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
-                    }
-                }
-                is Request.NewSong -> {
-                    val old = status
-                    when (old){
-                        is Status.SongPlaying -> Pair(
-                            mutateStatus.newSong(old, action.uri, action.startTime, action.quality()),
-                            Response.Song(SongMetadata(action.uri), action.quality)
-                        )
-                        is Status.SongPaused -> Pair(
-                            mutateStatus.newSong(old, action.uri, action.startTime, action.quality()),
-                            Response.Ok()
-                        )
-                        is Status.Waiting -> Pair(
-                            mutateStatus.newSong(old, action.uri, action.startTime, action.quality()),
-                            Response.Ok()
-                        )
-                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
-                    }
-                }
-                is Request.Pause -> {
-                    val old = status
-                    when(old){
-                        is Status.SongPlaying -> Pair(mutateStatus.paused(old), Response.Ok())
-                        is Status.SongPaused -> Pair(mutateStatus.paused(old), Response.Ok())
-                        else -> Pair(mutateStatus.invalidAction(old), Response.InvalidAction())
-                    }
-                }
-                else -> {  println(action); assert(false);
-                    Pair(mutateStatus.invalidAction(status), Response.InvalidAction()) } // why do you want an else branch!?!?
-            }
-            println("Exiting first when with: " + res.first)
-            status = res.first
-            val response = res.second
-
-            // reply
-            reply(ws, response)
-
-            loop@while(owner.get() == id){
-                println("looping: " + status)
-                val old = status
-                status = when(old){
-                    is Status.SongPlaying -> {
-                        val rc = sendMusic(ws, old.stream)
-                        if (rc >= 2048 * 1024) // 2 MiB
-                            mutateStatus.paused(old)
-                        else
-                            mutateStatus.continuePlaying(old, rc)
-                    }
-                    is Status.SongPaused -> { /** wait **/ mutateStatus.paused(old) }
-                    is Status.Waiting -> { /** wait **/ mutateStatus.waiting(old) }
-                    is Status.Error -> {
-                        val resp = Buffer.buffer()
-                        resp.appendString(old.msg)
-                        ws.write(resp)
-                        mutateStatus.closed(old)
-                    }
-                    else -> mutateStatus.invalidAction(old)
-                }
-                if(!(status is Status.SongPlaying || status is Status.SongPaused)) break@loop
-            }
-            println("Exiting second when with: " + status)
+fun computeSha(uri: String, quality: String) : String{
+    fun bytesToHex(hash: ByteArray): String {
+        val hexString = StringBuffer()
+        for (i in hash.indices) {
+            val hex = Integer.toHexString(0xff and hash[i].toInt())
+            if (hex.length == 1) hexString.append('0')
+            hexString.append(hex)
         }
-    })
+        return hexString.toString()
+    }
+
+    val inputStr = uri.toByteArray()+quality.toByteArray()
+    val sha = MessageDigest.getInstance("SHA-1").digest(inputStr)
+    return bytesToHex(sha)
+}
+
+fun getFullPath(sha: String): String {
+    val p =  WORKDIR.absolutePath + "/" + sha + ".ogg"
+    return p
+}
+
+fun checkFileAccess(uri: String, access: File): Boolean {
+    val fp = File(uri)
+    val src = fp.canonicalPath
+    val ret =  fp.canonicalFile.toPath().startsWith(access.toPath())
+    return ret
+}
+
+fun generateNewFile(uri: String, quality: String) : Response
+{
+    // check file access: do not evade LIBRARY
+    if(!checkFileAccess(uri, LIBRARY)) return Response.Error("Invalid file")
+
+    val sha = computeSha(uri, quality)
+    val newFile = getFullPath(sha)
+    // check if file exists and can be reused
+    if(sha in audioFiles) {
+        audioFiles[sha] = audioFiles[sha]!! + 1
+        assert(File(newFile).exists())
+        val metadata = uri.getMetadata()
+        return Response.Song(newFile, metadata, quality)
+    } else {
+        val doFFMPEG = uri.runConversion(newFile)
+        return when(doFFMPEG) {
+            is FFMPEGStream.Invalid -> Response.Error(doFFMPEG.msg)
+            else -> {
+                val metadata = uri.getMetadata()
+                audioFiles[sha] = 1
+                assert(File(newFile).exists())
+                Response.Song(newFile, metadata, quality)
+            }
+        }
+    }
+}
+
+fun handle(buf: Buffer): Response{
+    val req: Request = parse(buf)
+
+    return when(req){
+        is Request.Error -> Response.Error(req.msg)
+        is Request.NewSong -> generateNewFile(req.uri, req.quality)
+        is Request.SongDone -> {
+            val sha = computeSha(req.uri, req.quality)
+            assert(sha in audioFiles)
+            assert(File(getFullPath(sha)).exists())
+
+            val nUses = audioFiles[sha]!!
+            when(nUses) {
+                0 -> assert(false)
+                1 -> {
+                    audioFiles.remove(sha)
+                    File(getFullPath(sha)).delete()
+                }
+                else -> audioFiles[sha] = nUses - 1
+            }
+            Response.Ok()
+        }
+        else -> {assert(false); Response.Error("assert false")}
+    }
+}
+
+
+fun routing(req: HttpServerRequest){
+    print("New request: " + req.path())
+    val pathArray = req.path().split("/")
+    println(pathArray)
+    val resp = req.response()
+    when(pathArray[1]){
+        "file" -> {
+            try {
+                val file = WORKDIR.absolutePath + "/" + pathArray.slice(2..pathArray.size - 1).joinToString("/")
+            if(checkFileAccess(file, WORKDIR) && File(file).exists()) {
+                    resp.sendFile(file)
+                } else {
+                    resp.statusCode = 404
+                    resp.end()
+                }
+            } catch (e: Exception){
+                resp.statusCode = 500
+                resp.end()
+            }
+        }
+        else -> req.bodyHandler({ buf ->
+            val respStruct: Response = handle(buf)
+            val buffer = generateReply(respStruct)
+            resp.putHeader("content-length", buffer.length().toString())
+            resp.putHeader("content-type", "application/json")
+            resp.write(buffer)
+            resp.end()
+        })
+    }
 }
 
 fun main(args: Array<String>){
     val vertx = Vertx.vertx()
     val server = vertx.createHttpServer()
 
-    server.websocketHandler({ ws ->
-        println(ws.toString())
-
-        logic(vertx, ws)
+//    val host = "127.0.0.1"
+    val host = "0.0.0.0"
+    server.requestHandler({ request ->
+        routing(request)
     })
-
-    val host = "127.0.0.1"
-//    val host = "0.0.0.0"
     server.listen(8080, host, { res-> if (res.succeeded()) {
         println("Listening...")
     }else{
         println(("Failed to bind!"))
     } })
+}
+
+data class SongMetadata(val json: JsonObject){}
+enum class QUALITY { HIGH, MEDIUM, LOW }
+
+open class FFMPEGStream private constructor() {
+    class Valid(): FFMPEGStream()
+    data class Invalid(val msg: String): FFMPEGStream()
+}
+
+fun String.runConversion(dst: String): FFMPEGStream {
+    val src = this
+    val command = "ffmpeg -i " +  src + " -f ogg -q 5 " + dst
+    try {
+        val parts = command.split("\\s".toRegex())
+        println(parts)
+        val proc = ProcessBuilder(*parts.toTypedArray())
+            .directory(LIBRARY)
+            /*
+        .redirectOutput(ProcessBuilder.Redirect.PIPE)
+        .redirectError(ProcessBuilder.Redirect.PIPE)
+             */
+            .start()
+        if(!proc.isAlive) return FFMPEGStream.Invalid("error: code = " + proc.exitValue().toString())
+        else return FFMPEGStream.Valid()
+    } catch(e: IOException) {
+        e.printStackTrace()
+        return FFMPEGStream.Invalid("IOException")
+    }
+}
+
+fun String.getMetadata(): SongMetadata {
+    val command = "mediainfo --Output=JSON " + this
+    val parts = command.split("\\s".toRegex())
+    val proc = ProcessBuilder(*parts.toTypedArray())
+        .directory(WORKDIR)
+        .redirectOutput(ProcessBuilder.Redirect.PIPE)
+        .start()
+    proc.waitFor() // TODO is blocking
+    if(proc.exitValue() != 0) throw Exception("Mediainfo failed")
+    else{
+        val str = String(proc.inputStream.readBytes(), Charsets.UTF_8)
+        val j = JsonObject(str.toString())
+        return SongMetadata(j)
+    }
 }
