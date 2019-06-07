@@ -1,9 +1,11 @@
 package com.streaming.main
 
+import com.streaming.database.*
 import io.vertx.core.Vertx
 import io.vertx.core.http.*
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.json.JsonObject
+import io.vertx.core.json.JsonArray
 import java.io.IOException
 import com.streaming.request.*
 import com.streaming.response.*
@@ -11,7 +13,8 @@ import java.security.MessageDigest
 import java.io.File
 
 ///// CONSTANTS
-val DATABASE = "/home/user/.mpd/database"
+//val DATABASE = "/home/user/.mpd/database"
+val DATABASE = "/home/user/db2.json" // TODO come on...
 val WORKDIR = File("/tmp/mozapp/")
 val LIBRARY = File("/media/asparagi/vibbra/")
 
@@ -72,6 +75,7 @@ fun generateNewFile(uri: String, quality: String) : Response
     }
 }
 
+// Here a Response is generated in reply to a Request
 fun handle(buf: Buffer): Response{
     val req: Request = parse(buf)
 
@@ -93,6 +97,11 @@ fun handle(buf: Buffer): Response{
                 else -> audioFiles[sha] = nUses - 1
             }
             Response.Ok()
+        }
+        is Request.Search -> {
+            val results = search(req.keys)
+            val array = JsonArray( results.map { it.json })
+            Response.Search(array)
         }
         else -> {assert(false); Response.Error("assert false")}
     }
@@ -134,7 +143,9 @@ fun main(args: Array<String>){
     val vertx = Vertx.vertx()
     val server = vertx.createHttpServer()
 
-//    val host = "127.0.0.1"
+    println("STARTING")
+    updateDatabase(vertx, DATABASE)
+
     val host = "0.0.0.0"
     server.requestHandler({ request ->
         routing(request)
@@ -159,7 +170,6 @@ fun String.runConversion(dst: String): FFMPEGStream {
     val command = "ffmpeg -i " +  src + " -f ogg -q 5 " + dst
     try {
         val parts = command.split("\\s".toRegex())
-        println(parts)
         val proc = ProcessBuilder(*parts.toTypedArray())
             .directory(LIBRARY)
             /*

@@ -6,6 +6,7 @@ import io.vertx.core.json.*
 
 open class Response private constructor() {
     data class Song(val uri: String, val metadata: SongMetadata, val quality: String): Response()
+    data class Search(val songs: JsonArray): Response()
     class Error(val msg: String): Response()
     class Ok(): Response()
 }
@@ -24,6 +25,10 @@ fun generateReply(response: Response): Buffer {
         )
         is Response.Ok -> hashMapOf(
             "response" to "ok"
+        )
+        is Response.Search -> hashMapOf(
+            "response" to "search",
+            "values" to response.songs.toString()
         )
         else -> {assert(false); hashMapOf("response" to "error", "msg" to "assert false")}
     }
