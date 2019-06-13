@@ -1,6 +1,7 @@
-package com.streaming.request
+package com.mozapp.server.request
 
-import com.streaming.main.*
+import com.mozapp.server.main.*
+import com.mozapp.server.streaming.*
 import io.vertx.core.json.*
 import io.vertx.core.buffer.Buffer
 
@@ -16,9 +17,9 @@ fun parse(req: Buffer): Request{
     val user = j.getString("user")
     val pass = j.getString("password")
     if(user == null || pass == null)
-        Request.Error("Invalid auth params")
-    else if(!(user == "mario" && pass == "rossi")){ // TODO
-        Request.Error("Invalid auth")
+        return Request.Error("Invalid auth params")
+    else if(!authenticateUser(user, pass)){
+        return Request.Error("Invalid auth")
     }
     if(j.getString("action") == null){
         return Request.Error("No action in response")
@@ -30,18 +31,18 @@ fun parse(req: Buffer): Request{
         "new-song" -> {
             val uri = j.getString("uri")
             val quality = j.getString("quality")
-            return Request.NewSong(uri, quality)
-            }
+            Request.NewSong(uri, quality)
+        }
         "song-done" -> {
             val uri = j.getString("uri")
             val quality = j.getString("quality")
-            return Request.SongDone(uri, quality)
+            Request.SongDone(uri, quality)
         }
         "search" -> {
             val keys = j.getString("keys")
-            return Request.Search(keys.split(" "))
+            Request.Search(keys.split(" "))
         }
-        else -> { assert(false); Request.Error("Assertion error") }
+        else -> {throw Exception("unreachable code")}
     }
 }
 open class Request private constructor() {

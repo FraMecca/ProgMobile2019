@@ -1,123 +1,107 @@
-package com.streaming.main
+package com.mozapp.server.main
 
-import com.streaming.database.*
+import com.mozapp.server.database.*
+import com.mozapp.server.streaming.*
+import com.mozapp.server.request.*
+import com.mozapp.server.response.*
 import io.vertx.core.Vertx
 import io.vertx.core.http.*
 import io.vertx.core.buffer.Buffer
-import io.vertx.core.json.JsonObject
 import io.vertx.core.json.JsonArray
-import java.io.IOException
-import com.streaming.request.*
-import com.streaming.response.*
-import java.security.MessageDigest
 import java.io.File
+import java.util.logging.Logger
+import io.vertx.core.json.*
+import java.io.*
 
-///// CONSTANTS
-//val DATABASE = "/home/user/.mpd/database"
-val DATABASE = "/home/user/db2.json" // TODO come on...
-val WORKDIR = File("/tmp/mozapp/")
-val LIBRARY = File("/media/asparagi/vibbra/")
+val Log = Logger.getLogger("InfoLogging")
+val users = LinkedHashMap<String, String>()
+val USERSFILE = "users.json"
 
-val audioFiles = mutableMapOf("bottom" to 0)
-
-fun computeSha(uri: String, quality: String) : String{
-    fun bytesToHex(hash: ByteArray): String {
-        val hexString = StringBuffer()
-        for (i in hash.indices) {
-            val hex = Integer.toHexString(0xff and hash[i].toInt())
-            if (hex.length == 1) hexString.append('0')
-            hexString.append(hex)
-        }
-        return hexString.toString()
-    }
-
-    val inputStr = uri.toByteArray()+quality.toByteArray()
-    val sha = MessageDigest.getInstance("SHA-1").digest(inputStr)
-    return bytesToHex(sha)
-}
-
-fun getFullPath(sha: String): String {
-    val p =  WORKDIR.absolutePath + "/" + sha + ".ogg"
-    return p
-}
-
-fun checkFileAccess(uri: String, access: File): Boolean {
-    val fp = File(uri)
-    val src = fp.canonicalPath
-    val ret =  fp.canonicalFile.toPath().startsWith(access.toPath())
-    return ret
-}
-
-fun generateNewFile(uri: String, quality: String) : Response
-{
-    // check file access: do not evade LIBRARY
-    if(!checkFileAccess(uri, LIBRARY)) return Response.Error("Invalid file")
-
-    val sha = computeSha(uri, quality)
-    val newFile = getFullPath(sha)
-    // check if file exists and can be reused
-    if(sha in audioFiles) {
-        audioFiles[sha] = audioFiles[sha]!! + 1
-        assert(File(newFile).exists())
-        val metadata = uri.getMetadata()
-        return Response.Song(newFile, metadata, quality)
-    } else {
-        val doFFMPEG = uri.runConversion(newFile)
-        return when(doFFMPEG) {
-            is FFMPEGStream.Invalid -> Response.Error(doFFMPEG.msg)
-            else -> {
-                val metadata = uri.getMetadata()
-                audioFiles[sha] = 1
-                assert(File(newFile).exists())
-                Response.Song(newFile, metadata, quality)
-            }
-        }
+fun loadUsers(){
+    val tmp = mutableListOf<Mpd.Song>()
+    val file = File(USERSFILE)
+    val reader = BufferedReader(FileReader(file) as Reader?)
+    val people = JsonArray(reader.readText())
+    people.forEach {
+        val j = it as JsonObject
+        val user = j.getString("user")
+        val pass = j.getString("password")
+        if(user == null || pass == null)
+            throw Exception("Invalid user json in users.json")
+        else
+            users[user] = pass
     }
 }
 
-// Here a Response is generated in reply to a Request
+fun authenticateUser(user: String, password: String) : Boolean{
+    println("AUTH: "+ user)
+    if(user !in users)
+        return false
+    else if (users[user] != password)
+        return false
+    else
+        return true
+}
+
+// a Response is generated in reply to a Request
 fun handle(buf: Buffer): Response{
     val req: Request = parse(buf)
 
     return when(req){
         is Request.Error -> Response.Error(req.msg)
-        is Request.NewSong -> generateNewFile(req.uri, req.quality)
-        is Request.SongDone -> {
-            val sha = computeSha(req.uri, req.quality)
-            assert(sha in audioFiles)
-            assert(File(getFullPath(sha)).exists())
+        // search for file if is in library and pass it to ffmpeg if it has not been converted already
+        is Request.NewSong ->{
+            // check file access: do not evade LIBRARY
+            val uri = LIBRARY.path +"/"+ req.uri
+            val sha = computeSha(uri, req.quality)
+            val newFile = getFullPath(sha)
 
-            val nUses = audioFiles[sha]!!
-            when(nUses) {
-                0 -> assert(false)
-                1 -> {
-                    audioFiles.remove(sha)
-                    File(getFullPath(sha)).delete()
-                }
-                else -> audioFiles[sha] = nUses - 1
+            if(!checkFileAccess(uri, LIBRARY))
+                Response.Error("Invalid file")
+            // check if file exists and can be reused
+            else if(sha in audioFiles) {
+                incrementReference(sha)
+                val metadata = getMetadataFromUri(uri)
+                Response.Song(newFile, metadata, req.quality)
+            } else {
+                generateNewFile(uri, req.quality, newFile, sha)
             }
-            Response.Ok()
+        }
+        // The client doesn't need the song anymore. Update references to file and delete if necessary
+        is Request.SongDone -> {
+            val sha = computeSha(LIBRARY.path + "/" + req.uri, req.quality)
+            if(sha !in audioFiles)
+                Response.Error("Song not playing")
+            else if (File(getFullPath(sha)).exists() == false)
+                Response.Error("File does not exist anymore")
+            else {
+                val nUses = audioFiles[sha]!!.first
+                when (nUses) {
+                    0 -> throw Exception("assertion: nUses can't be zero")
+                    1 -> removeReference(sha)
+                    else -> decrementReference(sha)
+                }
+                Response.Ok()
+            }
         }
         is Request.Search -> {
             val results = search(req.keys)
             val array = JsonArray( results.map { it.json })
             Response.Search(array)
         }
-        else -> {assert(false); Response.Error("assert false")}
+        else -> {throw Exception("unreachable code")}
     }
 }
 
 
 fun routing(req: HttpServerRequest){
-    print("New request: " + req.path())
     val pathArray = req.path().split("/")
-    println(pathArray)
     val resp = req.response()
     when(pathArray[1]){
         "file" -> {
+            val file = WORKDIR.absolutePath + "/" + pathArray.slice(2..pathArray.size - 1).joinToString("/")
             try {
-                val file = WORKDIR.absolutePath + "/" + pathArray.slice(2..pathArray.size - 1).joinToString("/")
-            if(checkFileAccess(file, WORKDIR) && File(file).exists()) {
+                if(checkFileAccess(file, WORKDIR) && File(file).exists()) {
                     resp.sendFile(file)
                 } else {
                     resp.statusCode = 404
@@ -127,76 +111,53 @@ fun routing(req: HttpServerRequest){
                 resp.statusCode = 500
                 resp.end()
             }
+            finally{
+                Log.info("New request for /file: " + file
+                + " --> status code = " + resp.statusCode)
+            }
         }
         else -> req.bodyHandler({ buf ->
-            val respStruct: Response = handle(buf)
+            val respStruct: Response = try{
+                handle(buf)
+            } catch(e: Exception){
+                resp.statusCode = 500
+                Response.Error("Internal Error")
+            }
             val buffer = generateReply(respStruct)
             resp.putHeader("content-length", buffer.length().toString())
             resp.putHeader("content-type", "application/json")
             resp.write(buffer)
             resp.end()
+            val result = when(respStruct){
+                is Response.Error -> respStruct.msg
+                else -> respStruct.javaClass.name
+            }
+            Log.info("New request for /: \"" + buf
+                    + "\" --> status code = " + resp.statusCode
+                    + " --> Content: " + result)
         })
     }
 }
 
 fun main(args: Array<String>){
+    Log.info("Started")
+    WORKDIR.mkdirs();
     val vertx = Vertx.vertx()
     val server = vertx.createHttpServer()
 
-    println("STARTING")
-    updateDatabase(vertx, DATABASE)
+    loadUsers()
+    Log.info("Users loaded")
+    loadDatabase(DATABASE)
+    Log.info("Song Database loaded")
 
     val host = "0.0.0.0"
     server.requestHandler({ request ->
         routing(request)
     })
+
     server.listen(8080, host, { res-> if (res.succeeded()) {
-        println("Listening...")
+        Log.info("Listening...")
     }else{
-        println(("Failed to bind!"))
+        Log.info(("Failed to bind!"))
     } })
-}
-
-data class SongMetadata(val json: JsonObject){}
-enum class QUALITY { HIGH, MEDIUM, LOW }
-
-open class FFMPEGStream private constructor() {
-    class Valid(): FFMPEGStream()
-    data class Invalid(val msg: String): FFMPEGStream()
-}
-
-fun String.runConversion(dst: String): FFMPEGStream {
-    val src = this
-    val command = "ffmpeg -i " +  src + " -f ogg -q 5 " + dst
-    try {
-        val parts = command.split("\\s".toRegex())
-        val proc = ProcessBuilder(*parts.toTypedArray())
-            .directory(LIBRARY)
-            /*
-        .redirectOutput(ProcessBuilder.Redirect.PIPE)
-        .redirectError(ProcessBuilder.Redirect.PIPE)
-             */
-            .start()
-        if(!proc.isAlive) return FFMPEGStream.Invalid("error: code = " + proc.exitValue().toString())
-        else return FFMPEGStream.Valid()
-    } catch(e: IOException) {
-        e.printStackTrace()
-        return FFMPEGStream.Invalid("IOException")
-    }
-}
-
-fun String.getMetadata(): SongMetadata {
-    val command = "mediainfo --Output=JSON " + this
-    val parts = command.split("\\s".toRegex())
-    val proc = ProcessBuilder(*parts.toTypedArray())
-        .directory(WORKDIR)
-        .redirectOutput(ProcessBuilder.Redirect.PIPE)
-        .start()
-    proc.waitFor() // TODO is blocking
-    if(proc.exitValue() != 0) throw Exception("Mediainfo failed")
-    else{
-        val str = String(proc.inputStream.readBytes(), Charsets.UTF_8)
-        val j = JsonObject(str.toString())
-        return SongMetadata(j)
-    }
 }

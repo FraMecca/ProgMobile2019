@@ -1,6 +1,7 @@
-package com.streaming.response
+package com.mozapp.server.response
 
-import com.streaming.main.*
+import com.mozapp.server.main.*
+import com.mozapp.server.streaming.*
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.json.*
 
@@ -28,9 +29,9 @@ fun generateReply(response: Response): Buffer {
         )
         is Response.Search -> hashMapOf(
             "response" to "search",
-            "values" to response.songs.toString()
+            "values" to response.songs
         )
-        else -> {assert(false); hashMapOf("response" to "error", "msg" to "assert false")}
+        else -> {throw Exception("unreachable code")}
     }
     val j: JsonObject = JsonObject(map as Map<String, Any>?)
     val buf = Buffer.buffer(j.toString())

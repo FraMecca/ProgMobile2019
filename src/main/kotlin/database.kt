@@ -1,27 +1,33 @@
-package com.streaming.database
+package com.mozapp.server.database
 
 import io.vertx.core.Vertx
-
 import io.vertx.core.json.*
 import java.io.*
 
 
-open class Mpd private constructor (json: JsonObject) {
+open class Mpd private constructor () {
     data class Song(
         val uri: String, val artist: String, val album: String, val title: String, val genre: String,
-        val performer: String, val composer: String, val track: String, val json: JsonObject) : Mpd(json)
+        val performer: String, val composer: String, val track: String, val json: JsonObject) : Mpd()
 
-    data class Playlist(val uri: String, val title: String, val json: JsonObject) : Mpd(json)
+    data class Playlist(val uri: String, val title: String, val json: JsonObject) : Mpd()
 }
 
-var database = mutableListOf<Mpd>()
-fun updateDatabase(vertx: Vertx, location: String){
+var database = mutableListOf<Mpd.Song>()
+fun loadDatabase(location: String){
 
-    val tmp = mutableListOf<Mpd>()
+ //   val command = "bash -c  ' echo asd && kpd --list-json |head -n 1|  jq .[] -c > " + location +"'" // so long java
+    val tmp = mutableListOf<Mpd.Song>()
     val file = File(location)
-    val reader = BufferedReader(FileReader(file))
-    reader.readLines().forEach { tmp.add(decode(JsonObject(it))) }
-    database = tmp
+    val reader = BufferedReader(FileReader(file) as Reader?)
+    reader.readLines().forEach {
+        val t = decode(JsonObject(it))
+        when(t){
+            is Mpd.Song -> tmp.add(t)
+            else -> {} // ignore
+        }
+    }
+    database = tmp // update reference
 }
 
 fun decode(j: JsonObject) : Mpd {
@@ -35,7 +41,7 @@ fun decode(j: JsonObject) : Mpd {
                 j.getString("composer"), j.getString("track"), j
             )
         }
-        else -> { assert(false); return Mpd.Playlist("", "", j) }
+        else -> {throw Exception("unreachable code")}
     }
     return el
 }
@@ -56,17 +62,17 @@ fun search(keys: List<String>) : MutableList<Mpd.Song>
 
     }
 
- // TODO do this better and without casts
     var haystack = database
     var tmp = mutableListOf<Mpd.Song>()
 
     for (key in keys) {
-        haystack.forEach { if (isSimilar(it, key))
-            tmp.add (it as Mpd.Song)
+        haystack.forEach {
+            if (isSimilar(it, key))
+            tmp.add (it)
         }
-        haystack = tmp as MutableList<Mpd>
+        haystack = tmp
         tmp = mutableListOf<Mpd.Song>()
     }
 
-    return haystack as MutableList<Mpd.Song>
+    return haystack
 }
