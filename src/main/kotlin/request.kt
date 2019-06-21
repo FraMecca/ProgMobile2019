@@ -42,6 +42,9 @@ fun parse(req: Buffer): Request{
             val keys = j.getString("keys")
             Request.Search(keys.split(" "))
         }
+        "all-by-artist" -> Request.AllByArtist()
+        "all-by-album" ->  Request.AllByAlbum()
+        "all-by-genre" ->  Request.AllByGenre()
         else -> {throw Exception("unreachable code")}
     }
 }
@@ -50,6 +53,9 @@ open class Request private constructor() {
     class SongDone(val uri: String, val quality: String): Request()
     class Error(val msg: String): Request()
     class Search(val keys: List<String>): Request()
+    class AllByGenre(): Request()
+    class AllByArtist(): Request()
+    class AllByAlbum(): Request()
 }
 
 fun Request.NewSong.quality(): QUALITY{

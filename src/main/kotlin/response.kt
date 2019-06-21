@@ -10,6 +10,9 @@ open class Response private constructor() {
     data class Search(val songs: JsonArray): Response()
     class Error(val msg: String): Response()
     class Ok(): Response()
+    class AllByArtist(val all: JsonObject): Response()
+    class AllByGenre(val all: JsonObject): Response()
+    class AllByAlbum(val all: JsonObject): Response()
 }
 
 fun generateReply(response: Response): Buffer {
@@ -30,6 +33,18 @@ fun generateReply(response: Response): Buffer {
         is Response.Search -> hashMapOf(
             "response" to "search",
             "values" to response.songs
+        )
+        is Response.AllByAlbum -> hashMapOf(
+            "response" to "all-albums",
+            "values" to response.all
+        )
+        is Response.AllByArtist -> hashMapOf(
+            "response" to "all-artists",
+            "values" to response.all
+        )
+        is Response.AllByGenre -> hashMapOf(
+            "response" to "all-genres",
+            "values" to response.all
         )
         else -> {throw Exception("unreachable code")}
     }

@@ -14,6 +14,10 @@ open class Mpd private constructor () {
 }
 
 var database = mutableListOf<Mpd.Song>()
+var byArtist = mutableMapOf<String, MutableMap<String, Any>>()
+var byAlbum = mutableMapOf<String, MutableMap<String, Any>>()
+var byGenre = mutableMapOf<String, MutableMap<String, MutableSet<String>>>()
+
 fun loadDatabase(location: String){
 
  //   val command = "bash -c  ' echo asd && kpd --list-json |head -n 1|  jq .[] -c > " + location +"'" // so long java
@@ -28,6 +32,84 @@ fun loadDatabase(location: String){
         }
     }
     database = tmp // update reference
+    loadArtists()
+    //loadAlbums()
+    //loadGenre()
+}
+
+fun loadArtists(){
+    fun getArtistImg(img:String) : String{
+        return "TODO" // TODO
+    }
+
+    for(it in database){
+        var artist = it.artist
+        val album = it.album
+        if(artist == ""){
+            if(album == "")
+                continue
+            else artist = "unknown"
+        }
+
+        if(artist !in byArtist) {
+            val img = getArtistImg(artist)
+            byArtist.put(artist, mutableMapOf("album" to mutableListOf<String>(), "img" to img))
+        }
+        (byArtist[artist]!!["album"]!! as MutableList<String>).add(album)
+    }
+}
+
+fun loadAlbums(){
+    fun getAlbumImg(img:String) : String{
+        return "TODO" // TODO
+    }
+
+    for(it in database){
+        val artist = it.artist
+        var album = it.album
+        if(album == ""){
+            if(artist == "")
+                continue
+            else album = "unknown"
+        }
+
+        if(album !in byAlbum) {
+            val img = getAlbumImg(album)
+            byAlbum.put(album, mutableMapOf("artist" to mutableListOf<String>(), "img" to img))
+        }
+        (byAlbum[album]!!["artist"]!! as MutableList<String>).add(artist)
+    }
+}
+
+fun loadGenres(){
+    for(it in database){
+        var artist = it.artist
+        var album = it.album
+        var genre = it.genre
+
+        if(artist == "" && album == "" && genre == "")
+            continue // skip it else correct them
+        if(artist == "")
+            artist = "unknown"
+        if(album == "")
+            album = "unknown"
+        if(genre == "")
+            genre = "unknown"
+
+        if(genre !in byGenre) {
+            byGenre.put(genre, mutableMapOf<String, MutableSet<String>>())
+        }
+        val artists = (byGenre[genre])!!
+        if(artist !in artists){
+            artists.put(artist, mutableSetOf<String>())
+        }
+        val albums = artists[artist]!!
+        if(!albums.contains(album))
+            albums.add(album)
+
+        // put it back in the map
+        byGenre[genre]!!.put(artist, albums)
+    }
 }
 
 fun decode(j: JsonObject) : Mpd {

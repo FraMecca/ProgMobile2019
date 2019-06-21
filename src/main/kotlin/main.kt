@@ -2,6 +2,7 @@ package com.mozapp.server.main
 
 import com.mozapp.server.database.*
 import com.mozapp.server.streaming.*
+import com.mozapp.server.thirdparties.*
 import com.mozapp.server.request.*
 import com.mozapp.server.response.*
 import io.vertx.core.Vertx
@@ -12,10 +13,12 @@ import java.io.File
 import java.util.logging.Logger
 import io.vertx.core.json.*
 import java.io.*
+import kotlin.system.exitProcess
 
 val Log = Logger.getLogger("InfoLogging")
 val users = LinkedHashMap<String, String>()
 val USERSFILE = "users.json"
+
 
 fun loadUsers(){
     val tmp = mutableListOf<Mpd.Song>()
@@ -140,6 +143,11 @@ fun routing(req: HttpServerRequest){
 }
 
 fun main(args: Array<String>){
+
+    val s = getArtistImage("kyuss")
+    if(s == "0")
+        exitProcess(0)
+
     Log.info("Started")
     WORKDIR.mkdirs();
     val vertx = Vertx.vertx()
