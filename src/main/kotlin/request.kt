@@ -45,6 +45,18 @@ fun parse(req: Buffer): Request{
         "all-by-artist" -> Request.AllByArtist()
         "all-by-album" ->  Request.AllByAlbum()
         "all-by-genre" ->  Request.AllByGenre()
+        "genre" ->  {
+            val k = j.getString("key")
+            Request.SingleGenre(k)
+        }
+        "artist" ->  {
+            val k = j.getString("key")
+            Request.SingleArtist(k)
+        }
+        "album" ->  {
+            val title = j.getString("key")
+            Request.SingleAlbum(title)
+        }
         else -> {throw Exception("unreachable code")}
     }
 }
@@ -56,6 +68,9 @@ open class Request private constructor() {
     class AllByGenre(): Request()
     class AllByArtist(): Request()
     class AllByAlbum(): Request()
+    class SingleAlbum(val title: String): Request()
+    class SingleArtist(val name: String): Request()
+    class SingleGenre(val key: String): Request()
 }
 
 fun Request.NewSong.quality(): QUALITY{

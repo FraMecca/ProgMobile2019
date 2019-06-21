@@ -1,8 +1,11 @@
 package com.mozapp.server.database
 
+import com.mozapp.server.thirdparties.getCoverArt
+import com.mozapp.server.thirdparties.getImgWikidata
 import io.vertx.core.Vertx
 import io.vertx.core.json.*
 import java.io.*
+import java.nio.file.Paths
 
 
 open class Mpd private constructor () {
@@ -33,13 +36,22 @@ fun loadDatabase(location: String){
     }
     database = tmp // update reference
     loadArtists()
-    //loadAlbums()
-    //loadGenre()
+    loadAlbums()
+    loadGenres()
 }
 
 fun loadArtists(){
-    fun getArtistImg(img:String) : String{
-        return "TODO" // TODO
+    val covers = {
+        val file = File("/home/user/.mpd/artists.json")
+        val reader = BufferedReader(FileReader(file) as Reader?)
+        val content = JsonObject(reader.readLine())
+        content.map
+    }
+
+    fun getArtistImg(name:String) : String{
+        val ret  = getImgWikidata(name)
+        println("getting cover for: " + name + " : " + ret)
+        return ret
     }
 
     for(it in database){
@@ -53,31 +65,41 @@ fun loadArtists(){
 
         if(artist !in byArtist) {
             val img = getArtistImg(artist)
-            byArtist.put(artist, mutableMapOf("album" to mutableListOf<String>(), "img" to img))
+            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<String>(), "img" to img, "name" to artist))
         }
-        (byArtist[artist]!!["album"]!! as MutableList<String>).add(album)
+        (byArtist[artist]!!["albums"]!! as MutableList<String>).add(album)
     }
 }
 
 fun loadAlbums(){
+    val covers = {
+        val file = File("/home/user/.mpd/covers.json")
+        val reader = BufferedReader(FileReader(file) as Reader?)
+        val content = JsonObject(reader.readLine())
+        content.map
+    }
+
     fun getAlbumImg(img:String) : String{
-        return "TODO" // TODO
+        val ret=  getCoverArt(img)
+        println("getting cover for: " + img + " : " + ret)
+        return ret
     }
 
     for(it in database){
         val artist = it.artist
         var album = it.album
+        val path = Paths.get(it.uri) // the file
+        val uri = path.parent.toString()
         if(album == ""){
             if(artist == "")
                 continue
             else album = "unknown"
         }
 
-        if(album !in byAlbum) {
+        if(uri !in byAlbum) {
             val img = getAlbumImg(album)
-            byAlbum.put(album, mutableMapOf("artist" to mutableListOf<String>(), "img" to img))
+            byAlbum.put(uri, mutableMapOf("artist" to artist , "img" to img, "uri" to uri, "title" to album))
         }
-        (byAlbum[album]!!["artist"]!! as MutableList<String>).add(artist)
     }
 }
 

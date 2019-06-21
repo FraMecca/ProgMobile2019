@@ -13,12 +13,15 @@ open class Response private constructor() {
     class AllByArtist(val all: JsonObject): Response()
     class AllByGenre(val all: JsonObject): Response()
     class AllByAlbum(val all: JsonObject): Response()
+    class SingleGenre(val key: String, val content: JsonObject): Response()
+    class SingleArtist(val content: JsonObject): Response()
+    class SingleAlbum(val content: JsonObject): Response()
 }
 
 fun generateReply(response: Response): Buffer {
     val map = when(response){
         is Response.Song -> hashMapOf(
-            "response" to "song",
+            "response" to "new-song",
             "metadata" to response.metadata,
             "quality" to response.quality,
             "uri" to response.uri
@@ -45,6 +48,19 @@ fun generateReply(response: Response): Buffer {
         is Response.AllByGenre -> hashMapOf(
             "response" to "all-genres",
             "values" to response.all
+        )
+        is Response.SingleAlbum -> hashMapOf(
+            "response" to "album",
+            "album" to response.content
+        )
+        is Response.SingleGenre -> hashMapOf(
+            "response" to "genre",
+            "key" to response.key,
+            "genre" to response.content
+        )
+        is Response.SingleArtist -> hashMapOf(
+            "response" to "artist",
+            "artist" to response.content
         )
         else -> {throw Exception("unreachable code")}
     }

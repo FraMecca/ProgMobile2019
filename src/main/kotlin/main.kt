@@ -92,6 +92,36 @@ fun handle(buf: Buffer): Response{
             val array = JsonArray( results.map { it.json })
             Response.Search(array)
         }
+        is Request.AllByArtist -> {
+            val all = JsonObject(byArtist as Map<String, Any>?)
+            Response.AllByArtist(all)
+        }
+        is Request.AllByAlbum -> {
+            val all = JsonObject(byAlbum as Map<String, Any>?)
+            Response.AllByAlbum(all)
+        }
+        is Request.AllByGenre -> {
+            val all = JsonObject(byGenre as Map<String, Any>?)
+            Response.AllByGenre(all)
+        }
+        is Request.SingleAlbum -> {
+            if (req.title in byAlbum)
+                Response.SingleAlbum(JsonObject(byAlbum[req.title]))
+            else
+                Response.Error("Not in db")
+        }
+        is Request.SingleArtist -> {
+            if (req.name in byArtist)
+                Response.SingleArtist(JsonObject(byArtist[req.name]))
+            else
+                Response.Error("Not in db")
+        }
+        is Request.SingleGenre -> {
+            if (req.key in byGenre)
+                Response.SingleGenre(req.key, JsonObject(byGenre[req.key] as Map<String, Any>?))
+            else
+                Response.Error("Not in db")
+        }
         else -> {throw Exception("unreachable code")}
     }
 }
@@ -119,7 +149,7 @@ fun routing(req: HttpServerRequest){
                 + " --> status code = " + resp.statusCode)
             }
         }
-        else -> req.bodyHandler({ buf ->
+        "" -> req.bodyHandler({ buf ->
             val respStruct: Response = try{
                 handle(buf)
             } catch(e: Exception){
@@ -139,14 +169,14 @@ fun routing(req: HttpServerRequest){
                     + "\" --> status code = " + resp.statusCode
                     + " --> Content: " + result)
         })
+        else -> {
+            resp.statusCode = 404
+            resp.end()
+        }
     }
 }
 
 fun main(args: Array<String>){
-
-    val s = getArtistImage("kyuss")
-    if(s == "0")
-        exitProcess(0)
 
     Log.info("Started")
     WORKDIR.mkdirs();
