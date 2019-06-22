@@ -122,12 +122,15 @@ fun handle(buf: Buffer): Response{
             else
                 Response.Error("Not in db")
         }
+        is Request.Lyrics -> {
+            Response.Lyrics(req.artist, req.song)
+        }
         else -> {throw Exception("unreachable code")}
     }
 }
 
 
-fun routing(req: HttpServerRequest){
+fun routing(vertx: Vertx, req: HttpServerRequest){
     val pathArray = req.path().split("/")
     val resp = req.response()
     when(pathArray[1]){
@@ -150,25 +153,14 @@ fun routing(req: HttpServerRequest){
             }
         }
         "" -> req.bodyHandler({ buf ->
-            val respStruct: Response = try{
+            val responseObj: Response = try{
                 handle(buf)
             } catch(e: Exception){
                 Log.info(e.toString())
                 resp.statusCode = 500
                 Response.Error("Internal Error")
             }
-            val buffer = generateReply(respStruct)
-            resp.putHeader("content-length", buffer.length().toString())
-            resp.putHeader("content-type", "application/json")
-            resp.write(buffer)
-            resp.end()
-            val result = when(respStruct){
-                is Response.Error -> respStruct.msg
-                else -> respStruct.javaClass.name
-            }
-            Log.info("New request for /: \"" + buf
-                    + "\" --> status code = " + resp.statusCode
-                    + " --> Content: " + result)
+            val buffer = generateReply(vertx, resp, responseObj)
         })
         else -> {
             resp.statusCode = 404
@@ -181,17 +173,17 @@ fun main(args: Array<String>){
 
     Log.info("Started")
     WORKDIR.mkdirs();
-    val vertx = Vertx.vertx()
-    val server = vertx.createHttpServer()
 
     loadUsers()
     Log.info("Users loaded")
     loadDatabase(DATABASE)
     Log.info("Song Database loaded")
 
+    val vertx = Vertx.vertx()
+    val server = vertx.createHttpServer()
     val host = "0.0.0.0"
     server.requestHandler({ request ->
-        routing(request)
+        routing(vertx, request)
     })
 
     server.listen(8080, host, { res-> if (res.succeeded()) {

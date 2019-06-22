@@ -278,6 +278,28 @@ GenreEnumerated Object
 
 Reponse is a big dictionary of album/artist/genre objects
 
+### Lyrics
+
+```
+{
+    "user": "mario",
+    "password": "rossi", 
+    "action": "lyrics",
+    "artist":"the knife", // lowecase or upper case does not matter
+    "song": "Forest Families"
+}
+
+{
+    "song":"Forest Families",
+    "artist":"the Knife",
+    "lyrics":
+        "Too far away from the city\\r\\\n
+        ...
+        I just want your music tonight\\r\\n\\n",
+    "response":"lyrics"
+}
+```
+
 ### Error
 
 Whenever an operation is invalid
