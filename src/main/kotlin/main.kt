@@ -13,12 +13,13 @@ import java.io.File
 import java.util.logging.Logger
 import io.vertx.core.json.*
 import java.io.*
+import java.util.logging.Level
 import kotlin.system.exitProcess
 
 val Log = Logger.getLogger("InfoLogging")
+val ErrLog = Logger.getLogger("ErrorLogging")
 val users = LinkedHashMap<String, String>()
 val USERSFILE = "users.json"
-
 
 fun loadUsers(){
     val tmp = mutableListOf<Mpd.Song>()
@@ -37,7 +38,6 @@ fun loadUsers(){
 }
 
 fun authenticateUser(user: String, password: String) : Boolean{
-    println("AUTH: "+ user)
     if(user !in users)
         return false
     else if (users[user] != password)
@@ -93,11 +93,11 @@ fun handle(buf: Buffer): Response{
             Response.Search(array)
         }
         is Request.AllByArtist -> {
-            val all = JsonObject(byArtist as Map<String, Any>?)
+            val all = JsonArray(ArrayList(byArtist.values))
             Response.AllByArtist(all)
         }
         is Request.AllByAlbum -> {
-            val all = JsonObject(byAlbum as Map<String, Any>?)
+            val all = JsonArray(ArrayList(byAlbum.values))
             Response.AllByAlbum(all)
         }
         is Request.AllByGenre -> {
@@ -153,6 +153,7 @@ fun routing(req: HttpServerRequest){
             val respStruct: Response = try{
                 handle(buf)
             } catch(e: Exception){
+                Log.info(e.toString())
                 resp.statusCode = 500
                 Response.Error("Internal Error")
             }
@@ -199,3 +200,9 @@ fun main(args: Array<String>){
         Log.info(("Failed to bind!"))
     } })
 }
+
+
+fun errLog(msg: String){
+    ErrLog.log(Level.SEVERE, msg)
+}
+

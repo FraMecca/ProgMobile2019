@@ -45,12 +45,12 @@ fun loadArtists(){
         val file = File("/home/user/.mpd/artists.json")
         val reader = BufferedReader(FileReader(file) as Reader?)
         val content = JsonObject(reader.readLine())
-        content.map
-    }
+        content.map as Map<String, String>
+    }()
 
     fun getArtistImg(name:String) : String{
-        val ret  = getImgWikidata(name)
-        println("getting cover for: " + name + " : " + ret)
+       // val ret  = getImgWikidata(name)
+        val ret = covers.getOrDefault(name, "")
         return ret
     }
 
@@ -76,12 +76,12 @@ fun loadAlbums(){
         val file = File("/home/user/.mpd/covers.json")
         val reader = BufferedReader(FileReader(file) as Reader?)
         val content = JsonObject(reader.readLine())
-        content.map
-    }
+        content.map as Map<String, String>
+    }()
 
     fun getAlbumImg(img:String) : String{
-        val ret=  getCoverArt(img)
-        println("getting cover for: " + img + " : " + ret)
+        //val ret=  getCoverArt(img)
+        val ret = covers.getOrDefault(img, "")
         return ret
     }
 
@@ -89,6 +89,8 @@ fun loadAlbums(){
         val artist = it.artist
         var album = it.album
         val path = Paths.get(it.uri) // the file
+        if(path.parent == null)
+            continue
         val uri = path.parent.toString()
         if(album == ""){
             if(artist == "")

@@ -88,7 +88,8 @@ fun generateNewFile(uri: String, quality: String, newFile: String, sha: String) 
                 Response.Error("ffmpeg conversion error")
                -- > Can't do this, it could take some time to have a file in the working folder
              */
-                Response.Song(newFile, metadata, quality)
+            val abstractUri = newFile.replace(WORKDIR.absolutePath, "/file")
+            Response.Song(abstractUri, metadata, quality)
         }
     }
 }
@@ -102,7 +103,10 @@ fun String.getMetadata(): SongMetadata {
         .redirectOutput(ProcessBuilder.Redirect.PIPE)
         .start()
     proc.waitFor() // TODO is blocking
-    if(proc.exitValue() != 0) throw Exception("Mediainfo failed" + proc.exitValue())
+    if(proc.exitValue() != 0){
+        errLog("Mediainfo Failed")
+        throw Exception("Mediainfo failed" + proc.exitValue())
+    }
     else{
         val str = String(proc.inputStream.readBytes(), Charsets.UTF_8)
         val j = JsonObject(str.toString())
@@ -135,7 +139,7 @@ fun runConversion(src: String, dst: String, quality: String): Pair<FFMPEGStream,
         else
             return Pair(FFMPEGStream.Valid(), proc)
     } catch(e: IOException) {
-        e.printStackTrace()
+        errLog(e.stackTrace.toString())
         return Pair(FFMPEGStream.Invalid("IOException"), null)
     }
 }

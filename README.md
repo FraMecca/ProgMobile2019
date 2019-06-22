@@ -26,10 +26,38 @@ There are two possible routes:
 }
 
 {
-    "response": "search",
-    "values": [
-        "TODO"
-    ]
+  "response": "search",
+  "values": [
+    {
+      "album": "Sons of Kyuss",
+      "albumArtist": "",
+      "artist": "Sons of Kyuss",
+      "composer": "",
+      "date": "1990",
+      "disc": "",
+      "genre": "Rock",
+      "performer": "",
+      "title": "Deadly Kiss",
+      "track": "1",
+      "type": "song",
+      "uri": "Kyuss Discography [FLAC] [Stoner Rock, Psychedelic]/Albums/(1990) Sons of Kyuss/01 Deadly Kiss.flac"
+    },
+    {
+      "album": "Sons of Kyuss",
+      "albumArtist": "",
+      "artist": "Sons of Kyuss",
+      "composer": "",
+      "date": "1990",
+      "disc": "",
+      "genre": "Rock",
+      "performer": "",
+      "title": "Window of Souls",
+      "track": "2",
+      "type": "song",
+      "uri": "Kyuss Discography [FLAC] [Stoner Rock, Psychedelic]/Albums/(1990) Sons of Kyuss/02 Window of Souls.flac"
+    },
+    ... // many other objects
+  ]
 }
 ```
 
@@ -73,11 +101,29 @@ There are two possible routes:
 {
     "user": "mario",
     "password": "rossi",
-    "action": "all-artists",
+    "action": "all-by-artists",
 }
 {
+{
+    "response": "all-artists",
+    "values": [ /* ArtistEnumerated objects, see below */ ]
 }
 ```
+
+ArtistEnumerated object:
+
+```
+{
+    "albums": [
+        "Kinski - Acid Mothers Temple", 
+        "Kinski - Acid Mothers Temple", 
+        "Kinski - Acid Mothers Temple"
+        ],
+    "img": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Kinski-live.jpg",
+    "name": "Kinski"
+}
+```
+        
 
 ### Get List of All Albums
 
@@ -85,10 +131,23 @@ There are two possible routes:
 {
     "user": "mario",
     "password": "rossi",
-    "action": "all-albums",
+    "action": "all-by-albums",
 }
 
 {
+    "response": "all-genres",
+    "values": [ /* AlbumEnumerated Object */ ]
+}
+```
+
+AlbumEnumerated Objects
+
+```
+{
+    "artist": "Makoto Kawabata",
+    "img": "http://coverartarchive.org/release/a1e958bd-6ab6-4f53-9999-2b38406292be/22334619695-250.jpg", 
+    "uri": "Acid.Mothers.Temple/Acid Mothers Temple/Makoto Kawabata/(2005.00.00) (album) Jellyfish Rising [vbr]",
+    "title": "Jellyfish Rising"
 }
 ```
 
@@ -98,10 +157,38 @@ There are two possible routes:
 {
     "user": "mario",
     "password": "rossi",
-    "action": "all-genres",
+    "action": "all-by-genres",
 }
 
 {
+    "response": "all-genres",
+    "values":{
+        "Rock": { /* GenreEnumerated Objects */ },
+        "Stoner Rock": { /* GenreEnumerated Objects */ },
+        ...
+    }
+}
+```
+
+GenreEnumerated Object
+
+```
+{
+    "Atomic Bitchwax": [
+        "Spit Blood",
+        "III"
+    ], 
+    "Kyuss": [
+        "Wretch",
+        "Blues for the Red Sun",
+        "Demon Cleaner"
+        ], 
+    "Melvins": [
+        "The Making Love Demos"
+    ], 
+    "Nightstalker": [
+        "Use (Remastered)"
+    ]
 }
 ```
 
@@ -256,3 +343,4 @@ Used whenever needed to represent song metadata
   }
 }
 ```
+

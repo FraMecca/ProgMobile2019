@@ -10,7 +10,7 @@ fun parse(req: Buffer): Request{
     try {
         j = req.toJsonObject()
     } catch(e: Exception){
-        println(e)
+        errLog(e.stackTrace.toString())
         return Request.Error("Invalid Json")
     }
 
@@ -57,7 +57,8 @@ fun parse(req: Buffer): Request{
             val title = j.getString("key")
             Request.SingleAlbum(title)
         }
-        else -> {throw Exception("unreachable code")}
+        else -> Request.Error("Unknown action")
+
     }
 }
 open class Request private constructor() {
