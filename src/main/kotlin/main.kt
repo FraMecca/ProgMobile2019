@@ -125,6 +125,9 @@ fun handle(buf: Buffer): Response{
         is Request.Lyrics -> {
             Response.Lyrics(req.artist, req.song)
         }
+        is Request.ChallengeLogin ->{
+           Response.Ok()
+        }
         else -> {throw Exception("unreachable code")}
     }
 }
@@ -153,8 +156,12 @@ fun routing(vertx: Vertx, req: HttpServerRequest){
             }
         }
         "" -> req.bodyHandler({ buf ->
-            val responseObj: Response = try{
+            val responseObj: Response = try {
                 handle(buf)
+            }catch(e: IllegalStateException){
+                Log.info(e.toString())
+                resp.statusCode = 500
+                Response.Error(e.message!!)
             } catch(e: Exception){
                 Log.info(e.toString())
                 resp.statusCode = 500
@@ -186,13 +193,12 @@ fun main(args: Array<String>){
         routing(vertx, request)
     })
 
-    server.listen(8080, host, { res-> if (res.succeeded()) {
+    server.listen(44448, host, { res-> if (res.succeeded()) {
         Log.info("Listening...")
     }else{
         Log.info(("Failed to bind!"))
     } })
 }
-
 
 fun errLog(msg: String){
     ErrLog.log(Level.SEVERE, msg)

@@ -63,7 +63,7 @@ fun computeSha(uri: String, quality: String) : String{
 }
 
 fun getFullPath(sha: String): String {
-    val p =  WORKDIR.absolutePath + "/" + sha + ".ogg"
+    val p =  WORKDIR.absolutePath + "/" + sha + ".mp3"
     return p
 }
 
@@ -127,7 +127,7 @@ fun runConversion(src: String, dst: String, quality: String): Pair<FFMPEGStream,
         else -> 6
     }.toString()
     try {
-        val proc = ProcessBuilder("ffmpeg", "-i", src, "-f", "ogg", "-q", q, dst)
+        val proc = ProcessBuilder("ffmpeg", "-i", src, "-f", "mp3", "-q", q, dst)
             .directory(LIBRARY)
             /*
         .redirectOutput(ProcessBuilder.Redirect.PIPE)

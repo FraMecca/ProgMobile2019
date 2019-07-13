@@ -62,6 +62,9 @@ fun parse(req: Buffer): Request{
             val song = j.getString("song")
             Request.Lyrics(artist, song)
         }
+        "challenge-login" ->{
+            Request.ChallengeLogin()
+        }
         else -> Request.Error("Unknown action")
 
     }
@@ -78,6 +81,7 @@ open class Request private constructor() {
     class SingleArtist(val name: String): Request()
     class SingleGenre(val key: String): Request()
     class Lyrics(val artist: String, val song: String): Request()
+    class ChallengeLogin(): Request()
 }
 
 fun Request.NewSong.quality(): QUALITY{
