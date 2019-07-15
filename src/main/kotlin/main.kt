@@ -128,7 +128,6 @@ fun handle(buf: Buffer): Response{
         is Request.ChallengeLogin ->{
            Response.Ok()
         }
-        else -> {throw Exception("unreachable code")}
     }
 }
 

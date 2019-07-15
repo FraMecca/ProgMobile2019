@@ -69,7 +69,8 @@ fun parse(req: Buffer): Request{
 
     }
 }
-open class Request private constructor() {
+
+sealed class Request {
     class NewSong(val uri: String, val quality: String): Request()
     class SongDone(val uri: String, val quality: String): Request()
     class Error(val msg: String): Request()

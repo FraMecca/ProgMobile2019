@@ -8,7 +8,7 @@ import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.*
 import io.vertx.core.json.*
 
-open class Response private constructor() {
+sealed class Response {
     data class Song(val uri: String, val metadata: SongMetadata, val quality: String): Response()
     data class Search(val songs: JsonArray): Response()
     class Error(val msg: String): Response()
@@ -107,7 +107,6 @@ fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response
             }
             getLyricsResponse(vertx, response.artist, response.song, success, failure)
         }
-        else -> {throw Exception("unreachable code")}
     }
 }
 

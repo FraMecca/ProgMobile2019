@@ -114,7 +114,7 @@ fun String.getMetadata(): SongMetadata {
     }
 }
 
-open class FFMPEGStream private constructor() {
+sealed class FFMPEGStream {
     class Valid(): FFMPEGStream()
     data class Invalid(val msg: String): FFMPEGStream()
 }
