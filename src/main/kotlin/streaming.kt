@@ -83,11 +83,6 @@ fun generateNewFile(uri: String, quality: String, newFile: String, sha: String) 
             val metadata = getMetadataFromUri(uri)
             audioFiles[sha] = Pair(1, conv.second!!)
             metadataMap[uri] = metadata
-            /*
-            if(File(newFile).exists() == false)
-                Response.Error("ffmpeg conversion error")
-               -- > Can't do this, it could take some time to have a file in the working folder
-             */
             val abstractUri = newFile.replace(WORKDIR.absolutePath, "/file")
             Response.Song(abstractUri, metadata, quality)
         }
@@ -127,7 +122,8 @@ fun runConversion(src: String, dst: String, quality: String): Pair<FFMPEGStream,
         else -> 6
     }.toString()
     try {
-        val proc = ProcessBuilder("ffmpeg", "-i", src, "-f", "mp3", "-q", q, dst)
+        println(src + " " + dst)
+        val proc = ProcessBuilder("ffmpeg", "-i", src, "-acodec", "libmp3lame", "-q", 8.toString(), dst) // QUALITY TODO
             .directory(LIBRARY)
             /*
         .redirectOutput(ProcessBuilder.Redirect.PIPE)

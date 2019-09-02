@@ -15,7 +15,7 @@ sealed class Response {
     class Ok(): Response()
     class AllByArtist(val all: JsonArray): Response()
     class AllByAlbum(val all: JsonArray): Response()
-    class AllByGenre(val all: JsonObject): Response()
+    class AllByGenre(val all: JsonArray): Response()
     class SingleGenre(val key: String, val content: JsonObject): Response()
     class SingleArtist(val content: JsonObject): Response()
     class SingleAlbum(val content: JsonObject): Response()

@@ -65,7 +65,8 @@ fun handle(buf: Buffer): Response{
             else if(sha in audioFiles) {
                 incrementReference(sha)
                 val metadata = getMetadataFromUri(uri)
-                Response.Song(newFile, metadata, req.quality)
+                val abstractUri = newFile.replace(WORKDIR.absolutePath, "/file")
+                Response.Song(abstractUri, metadata, req.quality)
             } else {
                 generateNewFile(uri, req.quality, newFile, sha)
             }
@@ -97,16 +98,16 @@ fun handle(buf: Buffer): Response{
             Response.AllByArtist(all)
         }
         is Request.AllByAlbum -> {
-            val all = JsonArray(ArrayList(byAlbum.values))
+            val all = JsonArray(ArrayList(byAlbum.values.map { mapOf("title" to it["title"], "artist" to it["artist"], "img" to it["img"], "uri" to it["uri"]) }))
             Response.AllByAlbum(all)
         }
         is Request.AllByGenre -> {
-            val all = JsonObject(byGenre as Map<String, Any>?)
+            val all = JsonArray(byGenre.keys.toList())
             Response.AllByGenre(all)
         }
         is Request.SingleAlbum -> {
             if (req.title in byAlbum)
-                Response.SingleAlbum(JsonObject(byAlbum[req.title]))
+                Response.SingleAlbum(JsonObject(byAlbum[req.title])) // TODO: doesn't consider different artists, same title
             else
                 Response.Error("Not in db")
         }

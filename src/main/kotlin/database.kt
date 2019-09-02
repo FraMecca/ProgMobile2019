@@ -100,7 +100,15 @@ fun loadAlbums(){
 
         if(uri !in byAlbum) {
             val img = getAlbumImg(album)
-            byAlbum.put(uri, mutableMapOf("artist" to artist , "img" to img, "uri" to uri, "title" to album))
+            val songs = ArrayList<MutableMap<String, String>>()
+            songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
+            byAlbum.put(uri, mutableMapOf("artist" to artist , "img" to img, "uri" to uri, "title" to album, "songs" to songs))
+
+        } else {
+            val img : String = byAlbum.get(uri)!!.get("img") as String
+            val songs : ArrayList<MutableMap<String, String>> = byAlbum.get(uri)!!["songs"] as ArrayList<MutableMap<String, String>>
+            songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
+            byAlbum.put(uri, mutableMapOf("artist" to artist , "img" to img, "uri" to uri, "title" to album, "songs" to songs))
         }
     }
 }

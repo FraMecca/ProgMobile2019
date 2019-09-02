@@ -135,7 +135,7 @@ ArtistEnumerated object:
 }
 
 {
-    "response": "all-genres",
+    "response": "all-albums",
     "values": [ /* AlbumEnumerated Object */ ]
 }
 ```
@@ -162,35 +162,14 @@ AlbumEnumerated Objects
 
 {
     "response": "all-genres",
-    "values":{
-        "Rock": { /* GenreEnumerated Objects */ },
-        "Stoner Rock": { /* GenreEnumerated Objects */ },
+    "values":[
+        "Rock",
+        "Stoner Rock",
         ...
-    }
-}
-```
-
-GenreEnumerated Object
-
-```
-{
-    "Atomic Bitchwax": [
-        "Spit Blood",
-        "III"
-    ], 
-    "Kyuss": [
-        "Wretch",
-        "Blues for the Red Sun",
-        "Demon Cleaner"
-        ], 
-    "Melvins": [
-        "The Making Love Demos"
-    ], 
-    "Nightstalker": [
-        "Use (Remastered)"
     ]
 }
 ```
+
 
 ### Artist
 
@@ -225,7 +204,7 @@ GenreEnumerated Object
     "user": "mario",
     "password": "rossi",
     "action": "album",
-    "key": "Welcome to Sky Valley"
+    "key": <album uri>
 }
 
 {
@@ -234,7 +213,10 @@ GenreEnumerated Object
         "title": "Welcome to Sky Valley",
         "img": "https://upload.wikimedia.org/wikipedia/commons/6/68/Kyuss_Lives2.JPG",
         "uri": "<path>,
-        "artist": Kyuss
+        "artist": Kyuss,
+        "songs": [{"uri": <first song uri>, "title": <first song title>},
+            ...
+        ]
     }
 }
 ```
