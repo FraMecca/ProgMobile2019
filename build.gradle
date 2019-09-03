@@ -7,6 +7,9 @@ allprojects {
         maven { url 'https://jitpack.io' }
     }
 }
+apply plugin: 'application'
+
+mainClassName = 'com.mozapp.server.main.MainKt'
 
 group 'group'
 version '1.0-SNAPSHOT'
