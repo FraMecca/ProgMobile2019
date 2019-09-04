@@ -66,7 +66,7 @@ fun handle(buf: Buffer): Response{
                 incrementReference(sha)
                 val metadata = getMetadataFromUri(uri)
                 val abstractUri = newFile.replace(WORKDIR.absolutePath, "/file")
-                Response.Song(abstractUri, metadata, req.quality)
+                Response.Song(abstractUri, metadata, req.quality, newFile, false)
             } else {
                 generateNewFile(uri, req.quality, newFile, sha)
             }

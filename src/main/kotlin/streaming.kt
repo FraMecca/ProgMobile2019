@@ -84,7 +84,7 @@ fun generateNewFile(uri: String, quality: String, newFile: String, sha: String) 
             audioFiles[sha] = Pair(1, conv.second!!)
             metadataMap[uri] = metadata
             val abstractUri = newFile.replace(WORKDIR.absolutePath, "/file")
-            Response.Song(abstractUri, metadata, quality)
+            Response.Song(abstractUri, metadata, quality, newFile, true)
         }
     }
 }
@@ -119,11 +119,11 @@ fun runConversion(src: String, dst: String, quality: String): Pair<FFMPEGStream,
     val q = when(quality){
         "High" -> 10
         "Low" -> 3
-        else -> 6
+        else -> 8
     }.toString()
     try {
         println(src + " " + dst)
-        val proc = ProcessBuilder("ffmpeg", "-i", src, "-acodec", "libmp3lame", "-q", 8.toString(), dst) // QUALITY TODO
+        val proc = ProcessBuilder("ffmpeg", "-i", src, "-acodec", "libmp3lame", "-q", q, dst) // QUALITY TODO
             .directory(LIBRARY)
             /*
         .redirectOutput(ProcessBuilder.Redirect.PIPE)
