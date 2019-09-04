@@ -115,9 +115,12 @@ ArtistEnumerated object:
 ```
 {
     "albums": [
-        "Kinski - Acid Mothers Temple", 
-        "Kinski - Acid Mothers Temple", 
-        "Kinski - Acid Mothers Temple"
+        {
+            "title": "(1990) Sons of Kyuss",
+            "img": <album cover",
+            "uri": <album-uri>
+        },
+        ...
         ],
     "img": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Kinski-live.jpg",
     "name": "Kinski"
@@ -187,11 +190,12 @@ AlbumEnumerated Objects
         "name": "Kyuss",
         "img": "https://upload.wikimedia.org/wikipedia/commons/6/68/Kyuss_Lives2.JPG",
         "albums": [
-            "(1990) Sons of Kyuss",
-            "(1991) Wretch",  
-            "(1992) Blues for the Red Sun",
-            "(1994) Welcome to Sky Valley",
-            "(1995) ...and the Circus Leaves Town"
+            {
+                "title": "(1990) Sons of Kyuss",
+                "img": <album cover",
+                "uri": <album-uri>
+            },
+            ...
         ]
     }
 }

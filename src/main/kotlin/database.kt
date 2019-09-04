@@ -57,6 +57,9 @@ fun loadArtists(){
     for(it in database){
         var artist = it.artist
         val album = it.album
+        val path = Paths.get(it.uri) // the file
+        if(path.parent == null)
+            continue
         if(artist == ""){
             if(album == "")
                 continue
@@ -65,26 +68,29 @@ fun loadArtists(){
 
         if(artist !in byArtist) {
             val img = getArtistImg(artist)
-            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<String>(), "img" to img, "name" to artist))
+            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<HashMap<String, String>>(), "img" to img, "name" to artist))
         }
-        (byArtist[artist]!!["albums"]!! as MutableList<String>).add(album)
+        val albumUri = path.parent.toString()
+        val img = getAlbumImg(album)
+        (byArtist[artist]!!["albums"]!! as MutableList<HashMap<String, String>>).add(hashMapOf("uri" to albumUri, "title" to album, "img" to img))
     }
 }
 
+val covers = {
+    val file = File("/home/user/.mpd/covers.json")
+    val reader = BufferedReader(FileReader(file) as Reader?)
+    val content = JsonObject(reader.readLine())
+    content.map as Map<String, String>
+}()
+
+fun getAlbumImg(img:String) : String{
+    //val ret=  getCoverArt(img)
+    val ret = covers.getOrDefault(img, "")
+    return ret
+}
+
+
 fun loadAlbums(){
-    val covers = {
-        val file = File("/home/user/.mpd/covers.json")
-        val reader = BufferedReader(FileReader(file) as Reader?)
-        val content = JsonObject(reader.readLine())
-        content.map as Map<String, String>
-    }()
-
-    fun getAlbumImg(img:String) : String{
-        //val ret=  getCoverArt(img)
-        val ret = covers.getOrDefault(img, "")
-        return ret
-    }
-
     for(it in database){
         val artist = it.artist
         var album = it.album
