@@ -352,3 +352,24 @@ Used whenever needed to represent song metadata
 }
 ```
 
+### Lyrics
+```
+{
+ 'action': 'lyrics',
+ 'artist': 'Nirvana',
+ 'password': 'rossi',
+ 'song': 'smell like teen spirit',
+ 'user': 'mario'
+ }
+
+```
+```
+{
+    "song":"smell like teen spirit",
+    "artist":"Nirvana",
+    "lyrics":"Load up on guns and bring your friends\\r\\nIt\'s fun to lose and to pretend\\r\\n
+    ...
+    A denial\\r\\nA denial\\r\\nA denial\\r\\nA denial\\r\\nA denial\\r\\nA denial\\r\\nA denial\\r\\n\\n",
+    "response":"lyrics"
+ }
+ ```
