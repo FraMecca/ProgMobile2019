@@ -59,9 +59,12 @@ fun getImgFromDb(key: String, type: String): String { // TODO : understand how t
 fun getLyricsResponse(vertx: Vertx, artist: String, song: String,
                       handleSuccessfulResponse: (r: String) -> Unit, handleFailure: () -> Unit){
     val fuckXml  = { xml:String ->
-        xml.substringAfterLast("<Lyric>")
-            .replace("</GetLyricResult>", "")
-            .replace("</Lyric>", "")
+        if("<Lyric />" in xml)
+            ""
+        else 
+            xml.substringAfterLast("<Lyric>")
+                .replace("</GetLyricResult>", "")
+                .replace("</Lyric>", "")
     }
 
     val url = "/apiv1.asmx/SearchLyricDirect?artist=$artist&song=$song"
