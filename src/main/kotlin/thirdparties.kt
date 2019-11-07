@@ -1,8 +1,8 @@
-package com.mozapp.server.thirdparties
+package com.apollon.server.thirdparties
 
-import com.mozapp.server.main.errLog
-import com.mozapp.server.streaming.LIBRARY
-import com.mozapp.server.streaming.WORKDIR
+import com.apollon.server.main.errLog
+import com.apollon.server.streaming.LIBRARY
+import com.apollon.server.streaming.WORKDIR
 import io.vertx.core.Vertx
 import io.vertx.core.http.HttpMethod
 import java.io.IOException

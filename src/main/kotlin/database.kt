@@ -1,4 +1,4 @@
-package com.mozapp.server.database
+package com.apollon.server.database
 
 import io.vertx.core.json.JsonObject
 import java.io.BufferedReader
@@ -128,10 +128,10 @@ fun loadAlbums() {
             byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to 0))
         } else {
             val img: String = byAlbum.get(uri)!!.get("img") as String
+            val nsongs: Int = byAlbum.get(uri)!!.get("#nsongs") as Int
             val songs: ArrayList<MutableMap<String, String>> = byAlbum.get(uri)!!["songs"] as ArrayList<MutableMap<String, String>>
             songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
-            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs))
-            val nsongs: Int = byAlbum.get(uri)!!.get("#nsongs") as Int
+            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to nsongs))
             byAlbum[uri]!!["#nsongs"] = nsongs + 1
         }
     }

@@ -1,8 +1,8 @@
-package com.mozapp.server.response
+package com.apollon.server.response
 
-import com.mozapp.server.main.Log
-import com.mozapp.server.streaming.SongMetadata
-import com.mozapp.server.thirdparties.getLyricsResponse
+import com.apollon.server.main.Log
+import com.apollon.server.streaming.SongMetadata
+import com.apollon.server.thirdparties.getLyricsResponse
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServerResponse

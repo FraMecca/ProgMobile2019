@@ -1,8 +1,8 @@
-package com.mozapp.server.request
+package com.apollon.server.request
 
-import com.mozapp.server.main.authenticateUser
-import com.mozapp.server.main.errLog
-import com.mozapp.server.streaming.QUALITY
+import com.apollon.server.main.authenticateUser
+import com.apollon.server.main.errLog
+import com.apollon.server.streaming.QUALITY
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.json.JsonObject
 

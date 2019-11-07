@@ -1,14 +1,14 @@
-package com.mozapp.server.streaming
+package com.apollon.server.streaming
 
-import com.mozapp.server.main.errLog
-import com.mozapp.server.response.Response
+import com.apollon.server.main.errLog
+import com.apollon.server.response.Response
 import io.vertx.core.json.JsonObject
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 
 val DATABASE = "/home/user/.mpd/db2.json"
-val WORKDIR = File("/tmp/mozapp/")
+val WORKDIR = File("/tmp/apollon/")
 val LIBRARY = File("/media/asparagi/vibbra/")
 
 val audioFiles: MutableMap<String, Pair<Int, Process>> = LinkedHashMap<String, Pair<Int, Process>>() // sha -> ( references to File , ffmpegProcess )
