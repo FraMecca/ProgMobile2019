@@ -194,7 +194,7 @@ fun main(args: Array<String>){
     })
 
     server.listen(44448, host, { res-> if (res.succeeded()) {
-        Log.info("Listening...")
+        Log.info("Listening on 44448...")
     }else{
         Log.info(("Failed to bind!"))
     } })

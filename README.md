@@ -124,6 +124,7 @@ ArtistEnumerated object:
         ],
     "img": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Kinski-live.jpg",
     "name": "Kinski"
+    "#nalbums": 3
 }
 ```
         
@@ -151,6 +152,7 @@ AlbumEnumerated Objects
     "img": "http://coverartarchive.org/release/a1e958bd-6ab6-4f53-9999-2b38406292be/22334619695-250.jpg", 
     "uri": "Acid.Mothers.Temple/Acid Mothers Temple/Makoto Kawabata/(2005.00.00) (album) Jellyfish Rising [vbr]",
     "title": "Jellyfish Rising"
+    "#nsongs": 3
 }
 ```
 

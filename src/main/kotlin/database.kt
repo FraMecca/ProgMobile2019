@@ -68,11 +68,23 @@ fun loadArtists(){
 
         if(artist !in byArtist) {
             val img = getArtistImg(artist)
-            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<HashMap<String, String>>(), "img" to img, "name" to artist))
+            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<HashMap<String, String>>(), "img" to img, "name" to artist, "#albums" to 0))
         }
         val albumUri = path.parent.toString()
-        val img = getAlbumImg(album)
-        (byArtist[artist]!!["albums"]!! as MutableList<HashMap<String, String>>).add(hashMapOf("uri" to albumUri, "title" to album, "img" to img))
+        val allUris = (byArtist[artist]!!["albums"]!! as MutableList<HashMap<String, String>>).map { it["uri"] }.toSet()
+        if(!allUris.contains(albumUri)) {
+            val img = getAlbumImg(album)
+            (byArtist[artist]!!["albums"]!! as MutableList<HashMap<String, String>>).add(
+                hashMapOf(
+                    "uri" to albumUri,
+                    "title" to album,
+                    "img" to img
+                )
+            )
+            // increment album counter
+            val nalbums = byArtist[artist]!!["#albums"]!! as Int
+            byArtist[artist]!!["#albums"] = nalbums + 1
+        }
     }
 }
 
@@ -108,13 +120,15 @@ fun loadAlbums(){
             val img = getAlbumImg(album)
             val songs = ArrayList<MutableMap<String, String>>()
             songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
-            byAlbum.put(uri, mutableMapOf("artist" to artist , "img" to img, "uri" to uri, "title" to album, "songs" to songs))
+            byAlbum.put(uri, mutableMapOf("artist" to artist , "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to 0))
 
         } else {
             val img : String = byAlbum.get(uri)!!.get("img") as String
             val songs : ArrayList<MutableMap<String, String>> = byAlbum.get(uri)!!["songs"] as ArrayList<MutableMap<String, String>>
             songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
             byAlbum.put(uri, mutableMapOf("artist" to artist , "img" to img, "uri" to uri, "title" to album, "songs" to songs))
+            val nsongs : Int = byAlbum.get(uri)!!.get("#nsongs") as Int
+            byAlbum[uri]!!["#nsongs"] = nsongs + 1
         }
     }
 }
@@ -134,13 +148,11 @@ fun loadGenres(){
         if(genre == "")
             genre = "unknown"
 
-        if(genre !in byGenre) {
+        if(genre !in byGenre)
             byGenre.put(genre, mutableMapOf<String, MutableSet<String>>())
-        }
         val artists = (byGenre[genre])!!
-        if(artist !in artists){
+        if(artist !in artists)
             artists.put(artist, mutableSetOf<String>())
-        }
         val albums = artists[artist]!!
         if(!albums.contains(album))
             albums.add(album)
