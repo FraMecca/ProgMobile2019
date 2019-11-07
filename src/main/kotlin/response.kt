@@ -1,37 +1,37 @@
 package com.mozapp.server.response
 
-import com.mozapp.server.main.*
-import com.mozapp.server.streaming.*
+import com.mozapp.server.main.Log
+import com.mozapp.server.streaming.SongMetadata
 import com.mozapp.server.thirdparties.getLyricsResponse
-import java.io.File
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
-import io.vertx.core.http.*
-import io.vertx.core.json.*
+import io.vertx.core.http.HttpServerResponse
+import io.vertx.core.json.JsonArray
+import io.vertx.core.json.JsonObject
 
 sealed class Response {
-    data class Song(val uri: String, val metadata: SongMetadata, val quality: String, val path: String, val isFirst: Boolean): Response()
-    data class Search(val songs: JsonArray): Response()
-    class Error(val msg: String): Response()
-    class Ok(): Response()
-    class AllByArtist(val all: JsonArray): Response()
-    class AllByAlbum(val all: JsonArray): Response()
-    class AllByGenre(val all: JsonArray): Response()
-    class SingleGenre(val key: String, val content: JsonObject): Response()
-    class SingleArtist(val content: JsonObject): Response()
-    class SingleAlbum(val content: JsonObject): Response()
-    class Lyrics(val artist: String, val song: String): Response()
+    data class Song(val uri: String, val metadata: SongMetadata, val quality: String, val path: String, val isFirst: Boolean) : Response()
+    data class Search(val songs: JsonArray) : Response()
+    class Error(val msg: String) : Response()
+    class Ok() : Response()
+    class AllByArtist(val all: JsonArray) : Response()
+    class AllByAlbum(val all: JsonArray) : Response()
+    class AllByGenre(val all: JsonArray) : Response()
+    class SingleGenre(val key: String, val content: JsonObject) : Response()
+    class SingleArtist(val content: JsonObject) : Response()
+    class SingleAlbum(val content: JsonObject) : Response()
+    class Lyrics(val artist: String, val song: String) : Response()
 }
 
 fun Response.asString(): String {
-    return when(this){
-        is Response.Song -> "Response.Song: "+ this.uri
-        is Response.Search -> "Response.Search: "+ this.songs
+    return when (this) {
+        is Response.Song -> "Response.Song: " + this.uri
+        is Response.Search -> "Response.Search: " + this.songs
         is Response.Error -> "Response.Error: " + this.msg
         is Response.Ok -> "Response.Ok"
-        is Response.AllByArtist -> "Response.AllByArtist: "+ this.all.size()
-        is Response.AllByAlbum -> "Response.AllByAlbum: "+ this.all.size()
-        is Response.AllByGenre -> "Response.AllByGenre: "+ this.all.size()
+        is Response.AllByArtist -> "Response.AllByArtist: " + this.all.size()
+        is Response.AllByAlbum -> "Response.AllByAlbum: " + this.all.size()
+        is Response.AllByGenre -> "Response.AllByGenre: " + this.all.size()
         is Response.SingleAlbum -> "Response.SingleAlbum"
         is Response.SingleGenre -> "Response.SingleGenre"
         is Response.SingleArtist -> "Response.SingleArtist"
@@ -51,13 +51,14 @@ fun sendWhenFileExists(vertx: Vertx, httpResp: HttpServerResponse, _response: Re
         httpResp.putHeader("content-type", "application/json")
         httpResp.write(buffer)
         httpResp.end()
-        val result = when (response) {
+
+        val result = when (response) { // captures response // ignore warning
             else -> response.javaClass.name
         }
         Log.info(
-            "New request for /: \"" + response.asString()
-                    + "\" --> status code = " + httpResp.statusCode
-                    + " --> Content: " + result
+            "New request for /: \"" + response.asString() +
+                    "\" --> status code = " + httpResp.statusCode +
+                    " --> Content: " + result
         )
     }
     when (response) {
@@ -69,17 +70,17 @@ fun sendWhenFileExists(vertx: Vertx, httpResp: HttpServerResponse, _response: Re
         )
         is Response.Song -> {
             val op = { status: Boolean ->
-                Log.info("Disk I/O: " + response.path +":" + cnt +"=" + status.toString())
+                Log.info("Disk I/O: " + response.path + ":" + cnt + "=" + status.toString())
                 if (status) {
-                    val send = {sendMap(hashMapOf("response" to "new-song","metadata" to response.metadata,
-                            "quality" to response.quality,"uri" to response.uri))}
+                    val send = { sendMap(hashMapOf("response" to "new-song", "metadata" to response.metadata,
+                            "quality" to response.quality, "uri" to response.uri)) }
                     if (response.isFirst)
-                        vertx.setTimer(1000, { id -> send()})// TODO fittizio because Android
+                        vertx.setTimer(1000, { send() }) // TODO fittizio because Android
                     else
                         send()
                 } else {
                     // repeat
-                    vertx.setTimer(100, { id -> sendWhenFileExists(vertx, httpResp, response, cnt + 1) })
+                    vertx.setTimer(100, { sendWhenFileExists(vertx, httpResp, response, cnt + 1) })
                 }
             }
             vertx.fileSystem().exists(response.path, { result -> op(result.result()) })
@@ -91,25 +92,24 @@ fun sendWhenFileExists(vertx: Vertx, httpResp: HttpServerResponse, _response: Re
     }
 }
 
+fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response) {
 
-fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response){
-
-    fun sendMap(map: Map<String, Any>){
+    fun sendMap(map: Map<String, Any>) {
         val buffer = Buffer.buffer(JsonObject(map).toString())
         httpResp.putHeader("content-length", buffer.length().toString())
         httpResp.putHeader("content-type", "application/json")
         httpResp.write(buffer)
         httpResp.end()
-        val result = when(response){
+        val result = when (response) {
             is Response.Error -> response.msg
             else -> response.javaClass.name
         }
-        Log.info("New request for /: \"" + response.asString()
-                + "\" --> status code = " + httpResp.statusCode
-                + " --> Content: " + result)
+        Log.info("New request for /: \"" + response.asString() +
+                "\" --> status code = " + httpResp.statusCode +
+                " --> Content: " + result)
     }
 
-    when(response){
+    when (response) {
         is Response.Song -> sendWhenFileExists(vertx, httpResp, response, 0)
         is Response.Error -> sendMap(
             hashMapOf(
@@ -165,7 +165,7 @@ fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response
                         "artist" to response.artist,
                         "song" to response.song,
                         "lyrics" to lyrics
-                    ))}
+                    )) }
             val failure = {
                 generateReply(vertx, httpResp, Response.Error("no lyrics found"))
             }
@@ -173,4 +173,3 @@ fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response
         }
     }
 }
-

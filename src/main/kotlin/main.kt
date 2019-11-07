@@ -1,28 +1,44 @@
 package com.mozapp.server.main
 
-import com.mozapp.server.database.*
-import com.mozapp.server.streaming.*
-import com.mozapp.server.thirdparties.*
-import com.mozapp.server.request.*
-import com.mozapp.server.response.*
+import com.mozapp.server.database.byAlbum
+import com.mozapp.server.database.byArtist
+import com.mozapp.server.database.byGenre
+import com.mozapp.server.database.loadDatabase
+import com.mozapp.server.database.search
+import com.mozapp.server.request.Request
+import com.mozapp.server.request.parse
+import com.mozapp.server.response.Response
+import com.mozapp.server.response.generateReply
+import com.mozapp.server.streaming.DATABASE
+import com.mozapp.server.streaming.LIBRARY
+import com.mozapp.server.streaming.WORKDIR
+import com.mozapp.server.streaming.audioFiles
+import com.mozapp.server.streaming.checkFileAccess
+import com.mozapp.server.streaming.computeSha
+import com.mozapp.server.streaming.decrementReference
+import com.mozapp.server.streaming.generateNewFile
+import com.mozapp.server.streaming.getFullPath
+import com.mozapp.server.streaming.getMetadataFromUri
+import com.mozapp.server.streaming.incrementReference
+import com.mozapp.server.streaming.removeReference
 import io.vertx.core.Vertx
-import io.vertx.core.http.*
 import io.vertx.core.buffer.Buffer
+import io.vertx.core.http.HttpServerRequest
 import io.vertx.core.json.JsonArray
+import io.vertx.core.json.JsonObject
+import java.io.BufferedReader
 import java.io.File
-import java.util.logging.Logger
-import io.vertx.core.json.*
-import java.io.*
+import java.io.FileReader
+import java.io.Reader
 import java.util.logging.Level
-import kotlin.system.exitProcess
+import java.util.logging.Logger
 
 val Log = Logger.getLogger("InfoLogging")
 val ErrLog = Logger.getLogger("ErrorLogging")
 val users = LinkedHashMap<String, String>()
 val USERSFILE = "users.json"
 
-fun loadUsers(){
-    val tmp = mutableListOf<Mpd.Song>()
+fun loadUsers() {
     val file = File(USERSFILE)
     val reader = BufferedReader(FileReader(file) as Reader?)
     val people = JsonArray(reader.readText())
@@ -30,15 +46,15 @@ fun loadUsers(){
         val j = it as JsonObject
         val user = j.getString("user")
         val pass = j.getString("password")
-        if(user == null || pass == null)
+        if (user == null || pass == null)
             throw Exception("Invalid user json in users.json")
         else
             users[user] = pass
     }
 }
 
-fun authenticateUser(user: String, password: String) : Boolean{
-    if(user !in users)
+fun authenticateUser(user: String, password: String): Boolean {
+    if (user !in users)
         return false
     else if (users[user] != password)
         return false
@@ -47,22 +63,22 @@ fun authenticateUser(user: String, password: String) : Boolean{
 }
 
 // a Response is generated in reply to a Request
-fun handle(buf: Buffer): Response{
+fun handle(buf: Buffer): Response {
     val req: Request = parse(buf)
 
-    return when(req){
+    return when (req) {
         is Request.Error -> Response.Error(req.msg)
         // search for file if is in library and pass it to ffmpeg if it has not been converted already
-        is Request.NewSong ->{
+        is Request.NewSong -> {
             // check file access: do not evade LIBRARY
-            val uri = LIBRARY.path +"/"+ req.uri
+            val uri = LIBRARY.path + "/" + req.uri
             val sha = computeSha(uri, req.quality)
             val newFile = getFullPath(sha)
 
-            if(!checkFileAccess(uri, LIBRARY))
+            if (!checkFileAccess(uri, LIBRARY))
                 Response.Error("Invalid file")
             // check if file exists and can be reused
-            else if(sha in audioFiles) {
+            else if (sha in audioFiles) {
                 incrementReference(sha)
                 val metadata = getMetadataFromUri(uri)
                 val abstractUri = newFile.replace(WORKDIR.absolutePath, "/file")
@@ -74,7 +90,7 @@ fun handle(buf: Buffer): Response{
         // The client doesn't need the song anymore. Update references to file and delete if necessary
         is Request.SongDone -> {
             val sha = computeSha(LIBRARY.path + "/" + req.uri, req.quality)
-            if(sha !in audioFiles)
+            if (sha !in audioFiles)
                 Response.Error("Song not playing")
             else if (File(getFullPath(sha)).exists() == false)
                 Response.Error("File does not exist anymore")
@@ -90,7 +106,7 @@ fun handle(buf: Buffer): Response{
         }
         is Request.Search -> {
             val results = search(req.keys)
-            val array = JsonArray( results.map { it.json })
+            val array = JsonArray(results.map { it.json })
             Response.Search(array)
         }
         is Request.AllByArtist -> {
@@ -126,48 +142,46 @@ fun handle(buf: Buffer): Response{
         is Request.Lyrics -> {
             Response.Lyrics(req.artist, req.song)
         }
-        is Request.ChallengeLogin ->{
-           Response.Ok()
+        is Request.ChallengeLogin -> {
+            Response.Ok()
         }
     }
 }
 
-
-fun routing(vertx: Vertx, req: HttpServerRequest){
+fun routing(vertx: Vertx, req: HttpServerRequest) {
     val pathArray = req.path().split("/")
     val resp = req.response()
-    when(pathArray[1]){
+    when (pathArray[1]) {
         "file" -> {
             val file = WORKDIR.absolutePath + "/" + pathArray.slice(2..pathArray.size - 1).joinToString("/")
             try {
-                if(checkFileAccess(file, WORKDIR) && File(file).exists()) {
+                if (checkFileAccess(file, WORKDIR) && File(file).exists()) {
                     resp.sendFile(file)
                 } else {
                     resp.statusCode = 404
                     resp.end()
                 }
-            } catch (e: Exception){
+            } catch (e: Exception) {
                 resp.statusCode = 500
                 resp.end()
-            }
-            finally{
-                Log.info("New request for /file: " + file
-                + " --> status code = " + resp.statusCode)
+            } finally {
+                Log.info("New request for /file: " + file +
+                " --> status code = " + resp.statusCode)
             }
         }
         "" -> req.bodyHandler({ buf ->
             val responseObj: Response = try {
                 handle(buf)
-            }catch(e: IllegalStateException){
+            } catch (e: IllegalStateException) {
                 Log.info(e.toString())
                 resp.statusCode = 500
                 Response.Error(e.message!!)
-            } catch(e: Exception){
+            } catch (e: Exception) {
                 Log.info(e.toString())
                 resp.statusCode = 500
                 Response.Error("Internal Error")
             }
-            val buffer = generateReply(vertx, resp, responseObj)
+            generateReply(vertx, resp, responseObj)
         })
         else -> {
             resp.statusCode = 404
@@ -176,10 +190,10 @@ fun routing(vertx: Vertx, req: HttpServerRequest){
     }
 }
 
-fun main(args: Array<String>){
+fun main(args: Array<String>) {
 
     Log.info("Started")
-    WORKDIR.mkdirs();
+    WORKDIR.mkdirs()
 
     loadUsers()
     Log.info("Users loaded")
@@ -193,14 +207,13 @@ fun main(args: Array<String>){
         routing(vertx, request)
     })
 
-    server.listen(44448, host, { res-> if (res.succeeded()) {
+    server.listen(44448, host, { res -> if (res.succeeded()) {
         Log.info("Listening on 44448...")
-    }else{
+    } else {
         Log.info(("Failed to bind!"))
     } })
 }
 
-fun errLog(msg: String){
+fun errLog(msg: String) {
     ErrLog.log(Level.SEVERE, msg)
 }
-

@@ -4,18 +4,10 @@ import com.mozapp.server.main.errLog
 import com.mozapp.server.streaming.LIBRARY
 import com.mozapp.server.streaming.WORKDIR
 import io.vertx.core.Vertx
-import org.musicbrainz.controller.Artist
-import org.musicbrainz.controller.Release
-import org.musicbrainz.controller.Controller
-import java.io.IOException
-import java.util.logging.Level
-import io.vertx.core.http.HttpClientRequest
 import io.vertx.core.http.HttpMethod
-import io.vertx.core.impl.VertxImpl.context
+import java.io.IOException
 
-
-
-fun getArtistImage(artist: String): String{
+fun getArtistImage(artist: String): String {
     /*
     val controller: Artist = Artist()
     controller.searchFilter.limit = 5;
@@ -34,7 +26,7 @@ fun getImgWikidata(key: String): String { // TODO : understand how to get smalle
 }
 
 @Deprecated("used to create db")
-fun getCoverArt(key: String): String{
+fun getCoverArt(key: String): String {
     return getImgFromDb(key, "cover")
 }
 
@@ -46,7 +38,7 @@ fun getImgFromDb(key: String, type: String): String { // TODO : understand how t
         .redirectOutput(ProcessBuilder.Redirect.PIPE)
             .start()
         proc.waitFor()
-        if(proc.exitValue() != 0)
+        if (proc.exitValue() != 0)
             return ""
         else
             return String(proc.inputStream.readBytes(), Charsets.UTF_8)
@@ -56,12 +48,17 @@ fun getImgFromDb(key: String, type: String): String { // TODO : understand how t
     }
 }
 
-fun getLyricsResponse(vertx: Vertx, artist: String, song: String,
-                      handleSuccessfulResponse: (r: String) -> Unit, handleFailure: () -> Unit){
-    val fuckXml  = { xml:String ->
-        if("<Lyric />" in xml)
+fun getLyricsResponse(
+    vertx: Vertx,
+    artist: String,
+    song: String,
+    handleSuccessfulResponse: (r: String) -> Unit,
+    handleFailure: () -> Unit
+) {
+    val fuckXml = { xml: String ->
+        if ("<Lyric />" in xml)
             ""
-        else 
+        else
             xml.substringAfterLast("<Lyric>")
                 .replace("</GetLyricResult>", "")
                 .replace("</Lyric>", "")
@@ -72,17 +69,17 @@ fun getLyricsResponse(vertx: Vertx, artist: String, song: String,
 
     // HTTP request:
     val client = vertx.createHttpClient()
-    client.requestAbs( HttpMethod.GET, host+url, { response ->
-        val r = response.bodyHandler {
-            if(response.statusCode() == 200) {
+    client.requestAbs(HttpMethod.GET, host + url, { response ->
+        response.bodyHandler {
+            if (response.statusCode() == 200) {
                 val responseXML = fuckXml(it.toString())
                 handleSuccessfulResponse(responseXML)
             } else {
                 // retry with python requests
-                try{
-                   val responseXML = fuckXml(getLyrics(host+url))
+                try {
+                    val responseXML = fuckXml(getLyrics(host + url))
                     handleSuccessfulResponse(responseXML)
-                } catch(e: Exception){
+                } catch (e: Exception) {
                     handleFailure()
                 }
             }
@@ -90,7 +87,7 @@ fun getLyricsResponse(vertx: Vertx, artist: String, song: String,
     }).end()
 }
 
-private fun getLyrics(url: String): String{
+private fun getLyrics(url: String): String {
 
     println(url)
     val cmd = "import requests as r; print(r.get('$url').text)"
@@ -99,11 +96,10 @@ private fun getLyrics(url: String): String{
         .redirectOutput(ProcessBuilder.Redirect.PIPE)
         .start()
     proc.waitFor() // TODO is blocking
-    if(proc.exitValue() != 0){
+    if (proc.exitValue() != 0) {
         errLog("requests failed")
         throw Exception("requests failed" + proc.exitValue())
-    }
-    else{
+    } else {
         return String(proc.inputStream.readBytes(), Charsets.UTF_8)
     }
 }
