@@ -66,6 +66,29 @@ fun parse(req: Buffer): Request {
         "challenge-login" -> {
             Request.ChallengeLogin()
         }
+        "new-playlist" -> {
+            val user = j.getString("user")
+            val title = j.getString("title")
+            val uris = j.getJsonArray("uris").toList().map { it -> it as String }
+            Request.NewPlaylist(user, title, uris)
+        }
+        "remove-playlist" -> {
+            val user = j.getString("user")
+            val title = j.getString("title")
+            Request.RemovePlaylist(user, title)
+        }
+        "modify-playlist" -> {
+            val user = j.getString("user")
+            val title = j.getString("title")
+            val uris = j.getJsonArray("uris").toList().map { it -> it as String }
+            val action = j.getString("playlist-action")
+            if (action == "remove")
+                Request.RemoveFromPlaylist(user, title, uris)
+            else if (action != "add")
+                Request.AddToPlaylist(user, title, uris)
+            else
+                return Request.Error("Invalid playlist-action")
+        }
         else -> Request.Error("Unknown action")
     }
 }
@@ -83,6 +106,10 @@ sealed class Request {
     class SingleGenre(val key: String) : Request()
     class Lyrics(val artist: String, val song: String) : Request()
     class ChallengeLogin() : Request()
+    class NewPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
+    class RemovePlaylist(val user: String, val title: String) : Request()
+    class AddToPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
+    class RemoveFromPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
 }
 
 fun Request.NewSong.quality(): QUALITY {

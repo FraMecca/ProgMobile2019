@@ -24,6 +24,7 @@ open class Mpd private constructor () {
 }
 
 var database = mutableListOf<Mpd.Song>()
+var databaseByUri = mutableMapOf<String, Mpd.Song>()
 var byArtist = mutableMapOf<String, MutableMap<String, Any>>()
 var byAlbum = mutableMapOf<String, MutableMap<String, Any>>()
 var byGenre = mutableMapOf<String, MutableMap<String, MutableSet<String>>>()
@@ -42,6 +43,7 @@ fun loadDatabase(location: String) {
         }
     }
     database = tmp // update reference
+    databaseByUri = (database.map { it -> Pair(it.uri, it) }).toMap().toMutableMap()
     loadArtists()
     loadAlbums()
     loadGenres()

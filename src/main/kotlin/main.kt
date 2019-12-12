@@ -145,6 +145,34 @@ fun handle(buf: Buffer): Response {
         is Request.ChallengeLogin -> {
             Response.Ok()
         }
+        is Request.NewPlaylist -> {
+            val res = Playlists.newPlaylist(req.user, req.title, req.uris)
+            return when (res) {
+                is Playlists.Result.Ok -> Response.Ok()
+                is Playlists.Result.Error -> Response.Error(res.msg)
+            }
+        }
+        is Request.RemovePlaylist -> {
+            val res = Playlists.deletePlaylist(req.user, req.title)
+            return when (res) {
+                is Playlists.Result.Ok -> Response.Ok()
+                is Playlists.Result.Error -> Response.Error(res.msg)
+            }
+        }
+        is Request.RemoveFromPlaylist -> {
+            val res = Playlists.removeElementsFromPlaylist(req.user, req.title, req.uris)
+            return when (res) {
+                is Playlists.Result.Ok -> Response.Ok()
+                is Playlists.Result.Error -> Response.Error(res.msg)
+            }
+        }
+        is Request.AddToPlaylist -> {
+            val res = Playlists.removeElementsFromPlaylist(req.user, req.title, req.uris)
+            return when (res) {
+                is Playlists.Result.Ok -> Response.Ok()
+                is Playlists.Result.Error -> Response.Error(res.msg)
+            }
+        }
     }
 }
 
