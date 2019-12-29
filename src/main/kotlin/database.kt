@@ -133,8 +133,7 @@ fun loadAlbums() {
             val nsongs: Int = byAlbum.get(uri)!!.get("#nsongs") as Int
             val songs: ArrayList<MutableMap<String, String>> = byAlbum.get(uri)!!["songs"] as ArrayList<MutableMap<String, String>>
             songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
-            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to nsongs))
-            byAlbum[uri]!!["#nsongs"] = nsongs + 1
+            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to nsongs+1))
         }
     }
 }

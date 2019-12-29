@@ -114,7 +114,7 @@ fun handle(buf: Buffer): Response {
             Response.AllByArtist(all)
         }
         is Request.AllByAlbum -> {
-            val all = JsonArray(ArrayList(byAlbum.values.map { mapOf("title" to it["title"], "artist" to it["artist"], "img" to it["img"], "uri" to it["uri"]) }))
+            val all = JsonArray(ArrayList(byAlbum.values.map { mapOf("title" to it["title"], "artist" to it["artist"], "img" to it["img"], "uri" to it["uri"], "#nsongs" to it["#nsongs"]) }))
             Response.AllByAlbum(all)
         }
         is Request.AllByGenre -> {
