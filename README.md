@@ -375,3 +375,156 @@ Used whenever needed to represent song metadata
     "response":"lyrics"
  }
  ```
+
+### Playlists
+
+These are the possible commands to operate on playlists:
+
+1. Create new playlist, specifying if any songs to add to add to the playlist
+2. Add songs to a playlist
+3. Remove songs from a playlist
+4. Get a playlist from its title and user
+5. Remove a playlist from its title and user
+6. List all playlists for a user
+
+##### 1. Create playlist
+
+```
+{
+	"user": "mario",
+	"password":"rossi", 
+	"action": "new-playlist", 
+	"title": <title of playlist>, 
+	"uris": <uris>   /// Uris could be empty 
+}
+```
+```
+{
+	"response":"ok"
+}
+```
+
+##### 2. Add songs
+
+```
+{
+	"user": "mario",
+	"password":"rossi", 
+	"action": "modify-playlist", 
+	"playlist-action": "add",
+	"title": <title of playlist>, 
+	"uris": <uris>
+}
+```
+```
+{
+	"response":"ok"
+}
+```
+
+##### 3. Remove songs
+
+```
+{
+	"user": "mario",
+	"password":"rossi", 
+	"action": "modify-playlist", 
+	"playlist-action": "remove",
+	"title": <title of playlist>, 
+	"uris": <uris>
+}
+```
+```
+{
+	"response":"ok"
+}
+```
+
+##### 4. Get a playlist
+
+```
+{
+	"user": "mario",
+	"password": "rossi", 
+	"action": "get-playlist", 
+	"title": <title>
+}
+```
+
+```
+{
+	"result": {
+		"title": "title",
+		"#nsongs": 1,
+		"uris": [
+					{
+						"uri": "[1997.11, #456 326-2] 12 Concerti Grossi Op. 6 [2 CD, compil.]/CD2/17. 6. Minuetto_ Vivace.flac",
+						"artist": "I Musici",
+						"album": "Concerto No. 9 in F",
+						"title": "6. Minuetto: Vivace",
+						"genre": "",
+						"performer": "",
+						"composer": "Arcangelo Corelli",
+						"track": "17",
+					}
+				]
+		},
+	"response": "get-playlist"}
+ ```
+
+##### 5. Remove a playlist
+
+```
+{
+	"user": "mario",
+	"password": "rossi", 
+	"action": "remove-playlist", 
+	"title": <title>
+}
+```
+
+```
+{
+	"response":"ok"
+}
+```
+
+##### 6. List all playlists
+
+```
+{
+	"user": "mario",
+	"password": "rossi", 
+	"action": "list-playlists", 
+	"title": <title>
+}
+```
+
+```
+{
+	"result": [
+		{
+			"title": "title",
+			"#nsongs": 1,
+			"uris": [
+				{
+					"album": "Concerto No. 9 in F",
+					"albumArtist": "",
+					"artist": "I Musici",
+					"composer": "Arcangelo Corelli",
+					"date": "1997",
+					"disc": "2",
+					"genre": "",
+					"performer": "",
+					"title": "5. Adagio",
+					"track": "16",
+					"type": "song",
+					"uri": "1997.11, #456 326-2 12 Concerti Grossi Op. 6 [2 CD, compil.]/CD2/16. 5. Adagio.flac"
+				}
+			]
+		}
+	],
+	"response": "list-playlists"
+ }
+
+``` 

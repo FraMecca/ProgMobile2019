@@ -76,7 +76,7 @@ fun loadArtists() {
 
         if (artist !in byArtist) {
             val img = getArtistImg(artist)
-            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<HashMap<String, String>>(), "img" to img, "name" to artist, "#albums" to 0))
+            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<HashMap<String, String>>(), "img" to img, "name" to artist, "#albums" to 1))
         }
         val albumUri = path.parent.toString()
         val allUris = (byArtist[artist]!!["albums"]!! as MutableList<HashMap<String, String>>).map { it["uri"] }.toSet()
@@ -127,7 +127,7 @@ fun loadAlbums() {
             val img = getAlbumImg(album)
             val songs = ArrayList<MutableMap<String, String>>()
             songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
-            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to 0))
+            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to 1))
         } else {
             val img: String = byAlbum.get(uri)!!.get("img") as String
             val nsongs: Int = byAlbum.get(uri)!!.get("#nsongs") as Int
@@ -210,4 +210,8 @@ fun search(keys: List<String>): MutableList<Mpd.Song> {
     }
 
     return haystack
+}
+
+fun wholeSongFromUri(uri: String): Mpd.Song{
+    return databaseByUri.getOrElse(uri, { throw Exception("Uri not in DB")})
 }

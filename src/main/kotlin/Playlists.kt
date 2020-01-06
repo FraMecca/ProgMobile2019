@@ -1,4 +1,5 @@
 import com.apollon.server.database.databaseByUri
+import com.apollon.server.database.wholeSongFromUri
 import com.apollon.server.main.users
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.json.JsonArray
@@ -11,8 +12,12 @@ object Playlists {
     val file = File("playlists.json")
 
     fun ok(): Result.Ok {
-        val j: JsonArray = JsonArray(many)
-        val buf = j.toBuffer()
+        val j = many.map { hashMapOf(
+            "user" to it.first.first,
+            "title" to it.first.second,
+            "uris" to it.second
+        ) }
+        val buf = JsonArray(j).toBuffer()
         file.writeText(buf.toString())
         return Result.Ok()
     }
@@ -24,7 +29,7 @@ object Playlists {
             val j = Buffer.buffer(file.readText()).toJsonArray()
             j.forEach { _it ->
                 val it = _it as JsonObject
-                val songs: List<String> = it.getJsonArray("song").toList().map { it as String }
+                val songs: List<String> = it.getJsonArray("uris").toList().map { it as String }
                 val user = it.getString("user")
                 val title = it.getString("title")
                 many.add(Pair(Pair(user, title), songs))
@@ -82,10 +87,18 @@ object Playlists {
     }
 
     fun addElementsToPlaylist(user: String, title: String, uris: List<String>): Result {
+        if(uris.size == 0)
+            return Result.Error("Uris should be size > 0")
+        else {
+            val inDb = uris.filter { databaseByUri.containsKey(it) }
+            if (inDb.size != uris.size)
+                return Result.Error("'" + inDb.toString() + "': uris not in database")
+        }
+
         val ell = many.filter { it.first.second == title && it.first.first == user }
         val uriSet = uris.toSet()
 
-        val checks = playlistChecks(user, title, uris)
+        val checks = playlistChecks(user, title, emptyList())
         return when (checks) {
             null -> {
                 val el = ell[0]
@@ -107,6 +120,42 @@ object Playlists {
         }
     }
 
+    fun listPlaylists(user: String): Result {
+        val ell = many.filter { it.first.first == user }
+        val res = ell.map {
+            hashMapOf(
+                "title" to it.first.second,
+                "#nsongs" to it.second.size,
+                "uris" to
+                        if(it.second == null || it.second.size == 0) emptyList<String>()
+                        else it.second.map { wholeSongFromUri(it).json }
+            )
+        }
+        return Result.Value(JsonArray(res))
+    }
+
+    fun getPlaylists(user: String, title: String): Result {
+        val ell = many.filter { it.first.first == user && it.first.second == title }
+
+        if(ell.size == 0)
+            return Result.Error("No playlist with such title")
+        else if(ell.size == 1) {
+            val res = ell.map {
+                hashMapOf(
+                    "title" to it.first.second,
+                    "#nsongs" to it.second.size,
+                    "uris" to
+                            if(it.second == null || it.second.size == 0) emptyList<String>()
+                            else it.second.map { wholeSongFromUri(it).json }
+                )
+            }
+            return Result.Value(JsonArray(res))
+        } else {
+            assert(false)
+            return Result.Error("shouldn't go here")
+        }
+    }
+
     private fun playlistChecks(user: String, title: String, uris: List<String>): String? {
         val uriSet = uris.toSet()
         val ell = many.filter { it.first.second == title && it.first.first == user }
@@ -116,7 +165,7 @@ object Playlists {
             return "Invalid user"
         else if (ell.size == 0)
             return "There isn't a playlist with the same title and user"
-        else {
+        else if(uris.size != 0){
             val el = ell[0]
             val newEl = Pair(el.first, el.second.filter { !uriSet.contains(it) })
             if (newEl.second.size == el.second.size)
@@ -124,10 +173,13 @@ object Playlists {
             else
                 return null
         }
+        else
+            return null
     }
 
     sealed class Result() {
         class Ok : Result()
+        class Value(val j: JsonArray): Result()
         class Error(val msg: String) : Result()
     }
 }

@@ -26,6 +26,7 @@ import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServerRequest
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
+import io.vertx.kotlin.core.json.get
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
@@ -150,6 +151,7 @@ fun handle(buf: Buffer): Response {
             return when (res) {
                 is Playlists.Result.Ok -> Response.Ok()
                 is Playlists.Result.Error -> Response.Error(res.msg)
+                is Playlists.Result.Value -> { assert(false); Response.Error("can't go here") }
             }
         }
         is Request.RemovePlaylist -> {
@@ -157,6 +159,7 @@ fun handle(buf: Buffer): Response {
             return when (res) {
                 is Playlists.Result.Ok -> Response.Ok()
                 is Playlists.Result.Error -> Response.Error(res.msg)
+                is Playlists.Result.Value -> { assert(false); Response.Error("can't go here") }
             }
         }
         is Request.RemoveFromPlaylist -> {
@@ -164,13 +167,31 @@ fun handle(buf: Buffer): Response {
             return when (res) {
                 is Playlists.Result.Ok -> Response.Ok()
                 is Playlists.Result.Error -> Response.Error(res.msg)
+                is Playlists.Result.Value -> { assert(false); Response.Error("can't go here") }
             }
         }
         is Request.AddToPlaylist -> {
-            val res = Playlists.removeElementsFromPlaylist(req.user, req.title, req.uris)
+            val res = Playlists.addElementsToPlaylist(req.user, req.title, req.uris)
             return when (res) {
                 is Playlists.Result.Ok -> Response.Ok()
                 is Playlists.Result.Error -> Response.Error(res.msg)
+                is Playlists.Result.Value -> { assert(false); Response.Error("can't go here") }
+            }
+        }
+        is Request.ListPlaylists ->{
+            val res = Playlists.listPlaylists(req.user)
+            return when(res){
+                is Playlists.Result.Value -> Response.ListPlaylist(res.j)
+                is Playlists.Result.Error -> Response.Error(res.msg)
+                is Playlists.Result.Ok -> { assert(false); Response.Error("can't go here") }
+            }
+        }
+        is Request.GetPlaylist ->{
+            val res = Playlists.getPlaylists(req.user, req.title)
+            return when(res){
+                is Playlists.Result.Value -> Response.GetPlaylist(res.j[0])
+                is Playlists.Result.Error -> Response.Error(res.msg)
+                is Playlists.Result.Ok -> { assert(false); Response.Error("can't go here") }
             }
         }
     }

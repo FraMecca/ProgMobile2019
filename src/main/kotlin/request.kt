@@ -84,10 +84,19 @@ fun parse(req: Buffer): Request {
             val action = j.getString("playlist-action")
             if (action == "remove")
                 Request.RemoveFromPlaylist(user, title, uris)
-            else if (action != "add")
+            else if (action == "add")
                 Request.AddToPlaylist(user, title, uris)
             else
                 return Request.Error("Invalid playlist-action")
+        }
+        "list-playlists" -> {
+            val user = j.getString("user")
+            return Request.ListPlaylists(user)
+        }
+        "get-playlist" -> {
+            val user = j.getString("user")
+            val title = j.getString("title")
+            return Request.GetPlaylist(user, title)
         }
         else -> Request.Error("Unknown action")
     }
@@ -110,6 +119,8 @@ sealed class Request {
     class RemovePlaylist(val user: String, val title: String) : Request()
     class AddToPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
     class RemoveFromPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
+    class ListPlaylists(val user: String) : Request()
+    class GetPlaylist(val user: String, val title: String) : Request()
 }
 
 fun Request.NewSong.quality(): QUALITY {

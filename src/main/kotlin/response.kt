@@ -20,6 +20,8 @@ sealed class Response {
     class SingleGenre(val key: String, val content: JsonObject) : Response()
     class SingleArtist(val content: JsonObject) : Response()
     class SingleAlbum(val content: JsonObject) : Response()
+    class ListPlaylist(val list: JsonArray) : Response()
+    class GetPlaylist(val obj: JsonObject) : Response()
     class Lyrics(val artist: String, val song: String) : Response()
 }
 
@@ -35,6 +37,8 @@ fun Response.asString(): String {
         is Response.SingleAlbum -> "Response.SingleAlbum"
         is Response.SingleGenre -> "Response.SingleGenre"
         is Response.SingleArtist -> "Response.SingleArtist"
+        is Response.ListPlaylist -> "Response.ListPlaylist"
+        is Response.GetPlaylist -> "Response.GetPlaylist"
         is Response.Lyrics -> "Response.Lyrics: " + this.song
     }
 }
@@ -156,6 +160,18 @@ fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response
                 "response" to "artist",
                 "artist" to response.content
             ))
+        is Response.ListPlaylist -> sendMap(
+            hashMapOf(
+                "response" to "list-playlists",
+                "result" to response.list
+            )
+        )
+        is Response.GetPlaylist -> sendMap(
+            hashMapOf(
+                "response" to "get-playlist",
+                "result" to response.obj
+            )
+        )
         is Response.Lyrics -> {
 
             val success = { lyrics: String ->

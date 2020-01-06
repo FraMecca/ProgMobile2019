@@ -1,7 +1,8 @@
 import requests as r
 import json as j
 
-URL = "https://francescomecca.eu/apollon/"
+#URL = "https://francescomecca.eu/apollon/"
+URL = "http://localhost:44448"
 
 # resp = r.post("http://localhost:8080", data=j.dumps({"user":"mario","password":"rossi", "action":"search", "keys":"kyuss gardenia"}))
 # print(resp.text)
@@ -37,4 +38,27 @@ def singleartist(uri):
 
 def singlegenre(key):
     resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "genre", "key":key}))
+    return resp
+
+def newplaylist(title, uris):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "new-playlist", "title": title, "uris": uris}))
+    return resp
+def delplaylist(title):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "remove-playlist", "title": title}))
+    return resp
+
+def listplaylists(user):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "list-playlists", "user": user}))
+    return resp
+
+def getplaylist(title):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "get-playlist", "title": title}))
+    return resp
+
+def addtoplaylist(title, uris):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "modify-playlist", "playlist-action": "add", "title": title, "uris": uris}))
+    return resp
+
+def removefromplaylist(title, uris):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "modify-playlist", "playlist-action": "remove", "title": title, "uris": uris}))
     return resp
