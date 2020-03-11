@@ -129,9 +129,25 @@ fun handle(buf: Buffer): Response {
                 Response.Error("Not in db")
         }
         is Request.SingleArtist -> {
-            if (req.name in byArtist)
-                Response.SingleArtist(JsonObject(byArtist[req.name]))
-            else
+            if (req.name in byArtist) {
+                val artist = byArtist[req.name]
+                val albums = (artist!!["albums"]!! as MutableList<HashMap<String, String>>).map {
+                    hashMapOf("uri" to it["uri"],
+                        "#nsongs" to byAlbum[it["uri"]]!!["#nsongs"],
+                        "title" to it["title"],
+                        "img" to it["img"]
+                    )
+                }
+                val res = artist.entries.associate {
+                    it.key to
+                            if(it.key != "albums")
+                                it.value
+                            else
+                                albums
+                }
+
+                Response.SingleArtist(JsonObject(res))
+            }else
                 Response.Error("Not in db")
         }
         is Request.SingleGenre -> {
