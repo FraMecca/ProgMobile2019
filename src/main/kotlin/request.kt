@@ -32,15 +32,25 @@ fun parse(req: Buffer): Request {
         "new-song" -> {
             val uri = j.getString("uri")
             val quality = j.getString("quality")
-            Request.NewSong(uri, quality)
+            when(quality){
+                null -> Request.Error("Missing quality field")
+                else -> Request.NewSong(uri, quality)
+            }
         }
         "song-done" -> {
             val uri = j.getString("uri")
             val quality = j.getString("quality")
-            Request.SongDone(uri, quality)
+            when(quality){
+                null -> Request.Error("Missing quality field")
+                else -> Request.SongDone(uri, quality)
+            }
         }
         "search" -> {
             val keys = j.getString("keys")
+            when(keys){
+                null -> Request.Error("Missing keys field")
+                else -> Request.Search(keys.split(" "))
+            }
             Request.Search(keys.split(" "))
         }
         "all-by-artist" -> Request.AllByArtist()
@@ -48,20 +58,32 @@ fun parse(req: Buffer): Request {
         "all-by-genre" -> Request.AllByGenre()
         "genre" -> {
             val k = j.getString("key")
-            Request.SingleGenre(k)
+            when(k){
+                null -> Request.Error("Missing key field")
+                else -> Request.SingleGenre(k)
+            }
         }
         "artist" -> {
             val k = j.getString("key")
-            Request.SingleArtist(k)
+            when(k) {
+                null -> Request.Error("Missing key field")
+                else -> Request.SingleArtist(k)
+            }
         }
         "album" -> {
             val title = j.getString("key")
-            Request.SingleAlbum(title)
+            when(title) {
+                null -> Request.Error("Missing key field")
+                else -> Request.SingleAlbum(title)
+            }
         }
         "lyrics" -> {
             val artist = j.getString("artist")
             val song = j.getString("song")
-            Request.Lyrics(artist, song)
+            if (artist == null || song == null)
+                Request.Error("Missing key in json")
+            else
+                Request.Lyrics(artist, song)
         }
         "challenge-login" -> {
             Request.ChallengeLogin()
@@ -98,6 +120,13 @@ fun parse(req: Buffer): Request {
             val title = j.getString("title")
             return Request.GetPlaylist(user, title)
         }
+        "conversion-status" -> {
+            val uri = j.getString("uri")
+            when(uri){
+                null -> Request.Error("Invalid uri")
+                else -> Request.SongConversionStatus(uri)
+            }
+        }
         else -> Request.Error("Unknown action")
     }
 }
@@ -105,6 +134,7 @@ fun parse(req: Buffer): Request {
 sealed class Request {
     class NewSong(val uri: String, val quality: String) : Request()
     class SongDone(val uri: String, val quality: String) : Request()
+    class SongConversionStatus(val uri: String) : Request()
     class Error(val msg: String) : Request()
     class Search(val keys: List<String>) : Request()
     class AllByGenre() : Request()

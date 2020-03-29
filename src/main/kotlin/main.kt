@@ -3,6 +3,7 @@ package com.apollon.server.main
 import com.apollon.server.database.byAlbum
 import com.apollon.server.database.byArtist
 import com.apollon.server.database.byGenre
+import com.apollon.server.database.databaseByUri
 import com.apollon.server.database.loadDatabase
 import com.apollon.server.database.search
 import com.apollon.server.request.Request
@@ -21,6 +22,7 @@ import com.apollon.server.streaming.getFullPath
 import com.apollon.server.streaming.getMetadataFromUri
 import com.apollon.server.streaming.incrementReference
 import com.apollon.server.streaming.removeReference
+import com.apollon.server.streaming.conversionDone
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServerRequest
@@ -104,6 +106,20 @@ fun handle(buf: Buffer): Response {
                 }
                 Response.Ok()
             }
+        }
+        is Request.SongConversionStatus -> {
+            val loc = req.uri.replace("/file", WORKDIR.absolutePath)
+            println(loc)
+            val file = File(loc)
+            if (!file.exists())
+                Response.Error("file does not exist")
+            else{
+                when(conversionDone(file.absolutePath)){
+                    true -> Response.SongConversionDone(req.uri)
+                    false -> Response.SongConversionOngoing(req.uri)
+                }
+            }
+
         }
         is Request.Search -> {
             val results = search(req.keys)
@@ -238,10 +254,12 @@ fun routing(vertx: Vertx, req: HttpServerRequest) {
             val responseObj: Response = try {
                 handle(buf)
             } catch (e: IllegalStateException) {
+                e.printStackTrace()
                 Log.info(e.toString())
                 resp.statusCode = 500
                 Response.Error(e.message!!)
             } catch (e: Exception) {
+                e.printStackTrace()
                 Log.info(e.toString())
                 resp.statusCode = 500
                 Response.Error("Internal Error")

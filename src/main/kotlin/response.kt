@@ -23,6 +23,8 @@ sealed class Response {
     class ListPlaylist(val list: JsonArray) : Response()
     class GetPlaylist(val obj: JsonObject) : Response()
     class Lyrics(val artist: String, val song: String) : Response()
+    class SongConversionDone(val uri: String) : Response()
+    class SongConversionOngoing(val uri: String) : Response()
 }
 
 fun Response.asString(): String {
@@ -40,6 +42,8 @@ fun Response.asString(): String {
         is Response.ListPlaylist -> "Response.ListPlaylist"
         is Response.GetPlaylist -> "Response.GetPlaylist"
         is Response.Lyrics -> "Response.Lyrics: " + this.song
+        is Response.SongConversionDone -> "Response.SongConversionDone" + this.uri
+        is Response.SongConversionOngoing -> "Response.SongConversionDone" + this.uri
     }
 }
 
@@ -170,6 +174,18 @@ fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response
             hashMapOf(
                 "response" to "get-playlist",
                 "result" to response.obj
+            )
+        )
+        is Response.SongConversionOngoing -> sendMap(
+            hashMapOf(
+                "response" to "conversion-status",
+                "result" to "ongoing"
+            )
+        )
+        is Response.SongConversionDone -> sendMap(
+            hashMapOf(
+                "response" to "conversion-status",
+                "result" to "done"
             )
         )
         is Response.Lyrics -> {

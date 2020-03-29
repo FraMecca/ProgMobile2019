@@ -528,3 +528,31 @@ These are the possible commands to operate on playlists:
  }
 
 ``` 
+
+##### 7. Query for song conversion status
+
+In this case the URI field refers to the file queried in the form: "/file/<sha>.mp3", not the uri of the song of the database.
+
+```
+{
+	"user": "mario",
+	"password": "rossi", 
+	"action": "conversion-status", 
+	"uri": <uri>
+}
+```
+
+The possible two results are:
+```
+{
+    "response": "conversion-status",
+	"result": "done"
+}
+```
+
+```
+{
+    "response": "conversion-status",
+	"result": "ongoing"
+}
+```

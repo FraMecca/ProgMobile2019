@@ -135,3 +135,23 @@ fun runConversion(src: String, dst: String, quality: String): Pair<FFMPEGStream,
         return Pair(FFMPEGStream.Invalid("IOException"), null)
     }
 }
+
+fun conversionDone(src: String): Boolean{
+    val proc = ProcessBuilder("mediainfo", "--Output=JSON", src)
+        .directory(WORKDIR)
+        .redirectOutput(ProcessBuilder.Redirect.PIPE)
+        .start()
+    proc.waitFor() // TODO is blocking
+    if (proc.exitValue() != 0) {
+        errLog("Mediainfo Failed")
+        throw Exception("Mediainfo failed" + proc.exitValue())
+    } else {
+        val str = String(proc.inputStream.readBytes(), Charsets.UTF_8)
+        val j = JsonObject(str.toString())
+        val mp3Info = j.getJsonObject("media")
+            .getJsonArray("track")
+            .getJsonObject(1)
+            .map
+        return "Duration" in mp3Info
+    }
+}

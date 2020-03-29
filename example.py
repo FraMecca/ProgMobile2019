@@ -62,3 +62,12 @@ def addtoplaylist(title, uris):
 def removefromplaylist(title, uris):
     resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "modify-playlist", "playlist-action": "remove", "title": title, "uris": uris}))
     return resp
+
+def newsong(uri):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "new-song", "uri": uri, "quality": "medium"}))
+    return resp
+    
+def conversionstatus(uri):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "conversion-status", "uri": uri}))
+    return resp
+    
