@@ -466,6 +466,7 @@ These are the possible commands to operate on playlists:
 						"performer": "",
 						"composer": "Arcangelo Corelli",
 						"track": "17",
+                        "img": <img>
 					}
 				]
 		},
@@ -519,7 +520,8 @@ These are the possible commands to operate on playlists:
 					"title": "5. Adagio",
 					"track": "16",
 					"type": "song",
-					"uri": "1997.11, #456 326-2 12 Concerti Grossi Op. 6 [2 CD, compil.]/CD2/16. 5. Adagio.flac"
+					"uri": "1997.11, #456 326-2 12 Concerti Grossi Op. 6 [2 CD, compil.]/CD2/16. 5. Adagio.flac",
+                    "img": <img>
 				}
 			]
 		}

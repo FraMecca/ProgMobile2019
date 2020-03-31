@@ -128,7 +128,7 @@ object Playlists {
                 "#nsongs" to it.second.size,
                 "uris" to
                         if(it.second == null || it.second.size == 0) emptyList<String>()
-                        else it.second.map { wholeSongFromUri(it).json }
+                        else it.second.map { JsonObject(wholeSongFromUri(it))}
             )
         }
         return Result.Value(JsonArray(res))
@@ -146,7 +146,7 @@ object Playlists {
                     "#nsongs" to it.second.size,
                     "uris" to
                             if(it.second == null || it.second.size == 0) emptyList<String>()
-                            else it.second.map { wholeSongFromUri(it).json }
+                            else it.second.map { JsonObject(wholeSongFromUri(it)) }
                 )
             }
             return Result.Value(JsonArray(res))

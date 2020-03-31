@@ -212,6 +212,26 @@ fun search(keys: List<String>): MutableList<Mpd.Song> {
     return haystack
 }
 
-fun wholeSongFromUri(uri: String): Mpd.Song{
-    return databaseByUri.getOrElse(uri, { throw Exception("Uri not in DB")})
+fun wholeSongFromUri(uri: String): Map<String, Any> {
+    val song = databaseByUri.getOrElse(uri, { throw Exception("Uri not in DB")})
+
+    // first try to get album uri by splitting on path
+    // else O(n) iterate over the db looking for one with the same name
+    val idx = song.uri.reversed().indexOf("/")
+    val path = song.uri.substring(0, song.uri.length - idx-1)
+
+    val expensiveQuery = {
+        val albums = byAlbum.filter{ (it.value.get("title") as String) == song.album}.values.toList()
+        if (albums.size == 0)
+            ""
+        else
+            albums[0]["img"] as String
+    }
+
+    val img = when(val it = byAlbum.get(path)) {
+        null -> expensiveQuery()
+        else -> it["img"] as String
+    }
+
+    return song.json.getMap().plus("img" to img)
 }
