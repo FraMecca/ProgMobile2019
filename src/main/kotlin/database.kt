@@ -41,7 +41,7 @@ fun checkExistingFiles(): Int{
     println("FILES:::::::::::::::::::::::::::::::::")
     fileDirMap[true]?.forEach {
         println(it)
-        audioFiles.put(it.fileName.toString(), Pair(1, nullProcess))
+        audioFiles.put(it.fileName.toString().replace(".mp3", ""), Pair(1, nullProcess))
     }
     return audioFiles.size
 }
