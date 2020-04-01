@@ -1,11 +1,16 @@
 package com.apollon.server.database
 
+import com.apollon.server.streaming.LIBRARY
+import com.apollon.server.streaming.WORKDIR
+import com.apollon.server.streaming.audioFiles
 import io.vertx.core.json.JsonObject
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.Reader
 import java.nio.file.Paths
+import java.nio.file.Files
+import java.util.stream.Collectors
 
 open class Mpd private constructor () {
     data class Song(
@@ -28,6 +33,18 @@ var databaseByUri = mutableMapOf<String, Mpd.Song>()
 var byArtist = mutableMapOf<String, MutableMap<String, Any>>()
 var byAlbum = mutableMapOf<String, MutableMap<String, Any>>()
 var byGenre = mutableMapOf<String, MutableMap<String, MutableSet<String>>>()
+
+val nullProcess = ProcessBuilder("true").directory(LIBRARY).start()
+fun checkExistingFiles(): Int{
+    val fileDirMap = Files.list(Paths.get(WORKDIR.path)).
+        collect(Collectors.partitioningBy( { it -> Files.isRegularFile(it)}))
+    println("FILES:::::::::::::::::::::::::::::::::")
+    fileDirMap[true]?.forEach {
+        println(it)
+        audioFiles.put(it.fileName.toString(), Pair(1, nullProcess))
+    }
+    return audioFiles.size
+}
 
 fun loadDatabase(location: String) {
 

@@ -5,6 +5,7 @@ import com.apollon.server.database.byArtist
 import com.apollon.server.database.byGenre
 import com.apollon.server.database.databaseByUri
 import com.apollon.server.database.loadDatabase
+import com.apollon.server.database.checkExistingFiles
 import com.apollon.server.database.search
 import com.apollon.server.request.Request
 import com.apollon.server.request.parse
@@ -282,6 +283,8 @@ fun main(args: Array<String>) {
     Log.info("Users loaded")
     loadDatabase(DATABASE)
     Log.info("Song Database loaded")
+    val rn = checkExistingFiles()
+    Log.info("Loaded "+rn.toString()+" existing files")
 
     val vertx = Vertx.vertx()
     val server = vertx.createHttpServer()

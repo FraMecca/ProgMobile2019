@@ -150,8 +150,9 @@ fun conversionDone(src: String): Boolean{
         val j = JsonObject(str.toString())
         val mp3Info = j.getJsonObject("media")
             .getJsonArray("track")
-            .getJsonObject(1)
-            .map
-        return "Duration" in mp3Info
+        if (mp3Info.size() >= 2)
+            return "Duration" in mp3Info.getJsonObject(1).map
+        else
+            return false
     }
 }
