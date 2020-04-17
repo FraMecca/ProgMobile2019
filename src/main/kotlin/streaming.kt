@@ -11,24 +11,24 @@ val DATABASE = "/home/user/.mpd/db2.json"
 val WORKDIR = File("/tmp/apollon/")
 val LIBRARY = File("/media/asparagi/vibbra/")
 
-val audioFiles: MutableMap<String, Pair<Int, Process>> = LinkedHashMap<String, Pair<Int, Process>>() // sha -> ( references to File , ffmpegProcess )
+data class AudioFileData(val played: Int, val process: Process, val size: Long)
+
+val audioFiles: MutableMap<String, AudioFileData> = LinkedHashMap() // sha -> ( references to File , ffmpegProcess )
 val metadataMap: MutableMap<String, SongMetadata> = LinkedHashMap<String, SongMetadata>() // uri -> metadata
 
 fun incrementReference(sha: String) {
     val r = audioFiles[sha]!!
-    val ref = r.first + 1
-    audioFiles[sha] = Pair(ref, r.second)
+    audioFiles[sha] = AudioFileData(r.played+1, r.process, r.size)
 }
 
 fun decrementReference(sha: String) {
     val r = audioFiles[sha]!!
-    val ref = r.first - 1
-    audioFiles[sha] = Pair(ref, r.second)
+    audioFiles[sha] = AudioFileData(r.played-1, r.process, r.size)
 }
 
 fun removeReference(sha: String) {
     val r = audioFiles[sha]!!
-    val proc = r.second
+    val proc = r.process
     proc.destroyForcibly()
     File(getFullPath(sha)).delete()
     audioFiles.remove(sha)
@@ -67,7 +67,7 @@ fun getFullPath(sha: String): String {
 
 fun checkFileAccess(uri: String, access: File): Boolean {
     val fp = File(uri)
-    val ret = fp.canonicalFile.toPath().startsWith(access.toPath())
+    val ret = fp.toPath().startsWith(access.toPath())
     return ret
 }
 
@@ -78,7 +78,7 @@ fun generateNewFile(uri: String, quality: String, newFile: String, sha: String):
         is FFMPEGStream.Invalid -> Response.Error(doFFMPEG.msg)
         else -> {
             val metadata = getMetadataFromUri(uri)
-            audioFiles[sha] = Pair(1, conv.second!!)
+            audioFiles[sha] = AudioFileData(1, conv.second!!, -1)
             metadataMap[uri] = metadata
             val abstractUri = newFile.replace(WORKDIR.absolutePath, "/file")
             Response.Song(abstractUri, metadata, quality, newFile, true)
@@ -154,5 +154,21 @@ fun conversionDone(src: String): Boolean{
             return "Duration" in mp3Info.getJsonObject(1).map
         else
             return false
+    }
+}
+
+fun computeOffset(file: String, percentage: Long): Long{
+    return when(percentage){
+        0L -> 0L
+        98L, 99L, 100L -> {
+            val sha = file.substringAfterLast('/').substringBeforeLast(".mp3")
+            val diskSize = audioFiles[sha]!!.size
+            diskSize/100L*98
+        }
+        else -> {
+            val sha = file.substringAfterLast('/').substringBeforeLast(".mp3")
+            val diskSize = audioFiles[sha]!!.size
+            diskSize/100L*percentage
+        }
     }
 }

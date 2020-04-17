@@ -3,7 +3,6 @@ package com.apollon.server.main
 import com.apollon.server.database.byAlbum
 import com.apollon.server.database.byArtist
 import com.apollon.server.database.byGenre
-import com.apollon.server.database.databaseByUri
 import com.apollon.server.database.loadDatabase
 import com.apollon.server.database.checkExistingFiles
 import com.apollon.server.database.search
@@ -24,6 +23,7 @@ import com.apollon.server.streaming.getMetadataFromUri
 import com.apollon.server.streaming.incrementReference
 import com.apollon.server.streaming.removeReference
 import com.apollon.server.streaming.conversionDone
+import com.apollon.server.streaming.computeOffset
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServerRequest
@@ -99,7 +99,7 @@ fun handle(buf: Buffer): Response {
             else if (File(getFullPath(sha)).exists() == false)
                 Response.Error("File does not exist anymore")
             else {
-                val nUses = audioFiles[sha]!!.first
+                val nUses = audioFiles[sha]!!.played
                 when (nUses) {
                     0 -> throw Exception("assertion: nUses can't be zero")
                     1 -> removeReference(sha)
@@ -235,10 +235,22 @@ fun routing(vertx: Vertx, req: HttpServerRequest) {
     val resp = req.response()
     when (pathArray[1]) {
         "file" -> {
-            val file = WORKDIR.absolutePath + "/" + pathArray.slice(2..pathArray.size - 1).joinToString("/")
+            val (file, offset) = {
+                val requestedFile =
+                    WORKDIR.absolutePath + "/" + pathArray.slice(2..pathArray.size - 1).joinToString("/")
+                if (requestedFile.contains('+')) {
+                    val idx = requestedFile.indexOf('+')
+                    val len = requestedFile.length
+                    Pair(requestedFile.substring(0, idx), requestedFile.substring(idx+1, len).toLong())
+                } else {
+                    Pair(requestedFile, 0.toLong())
+                }
+            } ()
+            println("ASDASDDAS: "+offset.toString())
             try {
                 if (checkFileAccess(file, WORKDIR) && File(file).exists()) {
-                    resp.sendFile(file)
+                    val realOffset = computeOffset(file, offset)
+                    resp.sendFile(file, realOffset)
                 } else {
                     resp.statusCode = 404
                     resp.end()

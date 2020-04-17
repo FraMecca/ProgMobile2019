@@ -1,5 +1,6 @@
 package com.apollon.server.database
 
+import com.apollon.server.streaming.AudioFileData
 import com.apollon.server.streaming.LIBRARY
 import com.apollon.server.streaming.WORKDIR
 import com.apollon.server.streaming.audioFiles
@@ -40,8 +41,8 @@ fun checkExistingFiles(): Int{
         collect(Collectors.partitioningBy( { it -> Files.isRegularFile(it)}))
     println("FILES:::::::::::::::::::::::::::::::::")
     fileDirMap[true]?.forEach {
-        println(it)
-        audioFiles.put(it.fileName.toString().replace(".mp3", ""), Pair(1, nullProcess))
+        val size = File(it.toString()).length()
+        audioFiles.put(it.fileName.toString().substringBeforeLast(".mp3"), AudioFileData(1, nullProcess, size))
     }
     return audioFiles.size
 }
@@ -93,7 +94,7 @@ fun loadArtists() {
 
         if (artist !in byArtist) {
             val img = getArtistImg(artist)
-            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<HashMap<String, String>>(), "img" to img, "name" to artist, "#albums" to 1))
+            byArtist.put(artist, mutableMapOf("albums" to mutableListOf<HashMap<String, String>>(), "img" to img, "name" to artist, "#albums" to 0))
         }
         val albumUri = path.parent.toString()
         val allUris = (byArtist[artist]!!["albums"]!! as MutableList<HashMap<String, String>>).map { it["uri"] }.toSet()
