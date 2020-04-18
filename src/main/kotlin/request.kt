@@ -99,6 +99,12 @@ fun parse(req: Buffer): Request {
             val title = j.getString("title")
             Request.RemovePlaylist(user, title)
         }
+        "rename-playlist" -> {
+            val user = j.getString("user")
+            val src = j.getString("src")
+            val dst = j.getString("dst")
+            Request.RenamePlaylist(user, src, dst)
+        }
         "modify-playlist" -> {
             val user = j.getString("user")
             val title = j.getString("title")
@@ -147,6 +153,7 @@ sealed class Request {
     class ChallengeLogin() : Request()
     class NewPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
     class RemovePlaylist(val user: String, val title: String) : Request()
+    class RenamePlaylist(val user: String, val src: String, val dst: String) : Request()
     class AddToPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
     class RemoveFromPlaylist(val user: String, val title: String, val uris: List<String>) : Request()
     class ListPlaylists(val user: String) : Request()

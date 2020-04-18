@@ -46,6 +46,10 @@ def newplaylist(title, uris):
 def delplaylist(title):
     resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "remove-playlist", "title": title}))
     return resp
+def renameplaylist(src, dst):
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "rename-playlist", "src": src, "dst": dst}))
+    return resp
+
 
 def listplaylists(user):
     resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "list-playlists", "user": user}))

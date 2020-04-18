@@ -195,6 +195,14 @@ fun handle(buf: Buffer): Response {
                 is Playlists.Result.Value -> { assert(false); Response.Error("can't go here") }
             }
         }
+        is Request.RenamePlaylist -> {
+            val res = Playlists.renamePlaylist(req.user, req.src, req.dst)
+            return when (res) {
+                is Playlists.Result.Ok -> Response.Ok()
+                is Playlists.Result.Error -> Response.Error(res.msg)
+                is Playlists.Result.Value -> { assert(false); Response.Error("can't go here") }
+            }
+        }
         is Request.RemoveFromPlaylist -> {
             val res = Playlists.removeElementsFromPlaylist(req.user, req.title, req.uris)
             return when (res) {

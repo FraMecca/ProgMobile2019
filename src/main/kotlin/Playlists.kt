@@ -65,6 +65,24 @@ object Playlists {
         }
     }
 
+    fun renamePlaylist(user: String, src: String, dst: String): Playlists.Result {
+        val el = many.filter { it.first.second == src && it.first.first == user }
+        assert(el.size <= 1)
+
+        if (!users.containsKey(user))
+            return Result.Error("Invalid user")
+        else if (el.size == 0)
+            return Result.Error("There isn't a playlist with the same title and user")
+        else {
+            many.remove(el[0])
+            val (fst, songs) = el[0]
+            val (user, oldtitle) = fst
+            assert(oldtitle == src)
+            many.add(Pair(Pair(user, dst), songs))
+            return ok()
+        }
+    }
+
     fun removeElementsFromPlaylist(user: String, title: String, uris: List<String>): Playlists.Result {
         val ell = many.filter { it.first.second == title && it.first.first == user }
         val uriSet = uris.toSet()

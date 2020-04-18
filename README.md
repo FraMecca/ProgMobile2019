@@ -380,12 +380,12 @@ Used whenever needed to represent song metadata
 
 These are the possible commands to operate on playlists:
 
-1. Create new playlist, specifying if any songs to add to add to the playlist
-2. Add songs to a playlist
-3. Remove songs from a playlist
-4. Get a playlist from its title and user
-5. Remove a playlist from its title and user
-6. List all playlists for a user
+- Create new playlist, specifying if any songs to add to add to the playlist
+- Add songs to a playlist
+- Remove songs from a playlist
+- Get a playlist from its title and user
+- Remove a playlist from its title and user
+- List all playlists for a user
 
 ##### 1. Create playlist
 
@@ -490,7 +490,24 @@ These are the possible commands to operate on playlists:
 }
 ```
 
-##### 6. List all playlists
+##### 6. Rename a playlist
+```
+{
+	"user": "mario",
+	"password": "rossi", 
+	"action": "rename-playlist", 
+	"src": <old-title>,
+	"dst": <new-title>
+}
+```
+
+```
+{
+	"response":"ok"
+}
+```
+
+##### 7. List all playlists
 
 ```
 {
@@ -531,7 +548,7 @@ These are the possible commands to operate on playlists:
 
 ``` 
 
-##### 7. Query for song conversion status
+##### 8. Query for song conversion status
 
 In this case the URI field refers to the file queried in the form: "/file/<sha>.mp3", not the uri of the song of the database.
 
