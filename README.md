@@ -237,21 +237,21 @@ AlbumEnumerated Objects
     "key": "Progressive Rock"
 }
 
-{
-    "response": "genre",
-    "key": "Progressive Rock",
-    "genre": {
-        "artists": [
-            "artist 1": [
-                "album 1",
-                "album 2",
-                ...
-            ]
-            "artist 2": [ ... ],
-            ...
-            ]
-    }
-}
+{'artists': [{'albums': [{'title': 'Led Zeppelin I',
+     'uri': 'Led.Zeppelin/1969.-.Led.Zeppelin.I',
+     'img': 'http://coverartarchive.org/release/eca4f64f-78af-471d-86fe-24ed1b3a3e6b/21096568735-250.jpg'},
+    {'title': 'Led Zeppelin II',
+     'uri': 'Led.Zeppelin/1969.-.Led.Zeppelin.II',
+     'img': ''},
+    {'title': 'Led Zeppelin III',
+     'uri': 'Led.Zeppelin/1970_-_Led_Zeppelin_-_Led_Zeppelin_III',
+     'img': ''}],
+   'img': 'https://upload.wikimedia.org/wikipedia/commons/8/88/Led_Zeppelin_2007.jpg',
+   'name': 'Led Zeppelin',
+   '#albums': 6}],
+ 'response': 'genre',
+ 'key': 'Rock'}
+
 ```
 
 ### List all:  Genre or Albums or Artists

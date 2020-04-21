@@ -168,9 +168,13 @@ fun handle(buf: Buffer): Response {
                 Response.Error("Not in db")
         }
         is Request.SingleGenre -> {
-            if (req.key in byGenre)
-                Response.SingleGenre(req.key, JsonObject(byGenre[req.key] as Map<String, Any>?))
-            else
+            if (req.key in byGenre){
+                // Response.SingleGenre(req.key, JsonObject(byGenre[req.key] as Map<String, Any>?))
+                val artists = byGenre[req.key]!!.keys.toSet()
+                Response.SingleGenre(req.key, JsonArray(byArtist
+                                                            .filter { it.key in artists }
+                                                            .map { it.value }))
+            }else
                 Response.Error("Not in db")
         }
         is Request.Lyrics -> {

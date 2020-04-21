@@ -17,7 +17,7 @@ sealed class Response {
     class AllByArtist(val all: JsonArray) : Response()
     class AllByAlbum(val all: JsonArray) : Response()
     class AllByGenre(val all: JsonArray) : Response()
-    class SingleGenre(val key: String, val content: JsonObject) : Response()
+    class SingleGenre(val key: String, val artists: JsonArray) : Response()
     class SingleArtist(val content: JsonObject) : Response()
     class SingleAlbum(val content: JsonObject) : Response()
     class ListPlaylist(val list: JsonArray) : Response()
@@ -157,7 +157,7 @@ fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response
             hashMapOf(
                 "response" to "genre",
                 "key" to response.key,
-                "genre" to response.content
+                "artists" to response.artists
             ))
         is Response.SingleArtist -> sendMap(
             hashMapOf(
