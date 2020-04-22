@@ -136,7 +136,8 @@ fun handle(buf: Buffer): Response {
             Response.AllByAlbum(all)
         }
         is Request.AllByGenre -> {
-            val all = JsonArray(byGenre.keys.toList())
+            println(byGenre["Progressive Rock"]!!.size)
+            val all = JsonArray(byGenre.map { listOf(it.key, it.value.size) }.toList())
             Response.AllByGenre(all)
         }
         is Request.SingleAlbum -> {

@@ -164,14 +164,14 @@ AlbumEnumerated Objects
     "password": "rossi",
     "action": "all-by-genres",
 }
-
-{
-    "response": "all-genres",
-    "values":[
-        "Rock",
-        "Stoner Rock",
-        ...
-    ]
+{'response': 'all-genres',
+ 'values': [
+    ['Progressive Rock', 3],
+    ['Classical', 1],
+    ['Rock', 1],
+    ['R&B', 1],
+    ['Electronic', 1]
+  ]
 }
 ```
 
