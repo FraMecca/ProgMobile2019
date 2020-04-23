@@ -73,6 +73,10 @@ object Playlists {
             return Result.Error("Invalid user")
         else if (el.size == 0)
             return Result.Error("There isn't a playlist with the same title and user")
+
+        val other = many.filter { it.first.second == dst && it.first.first == user }
+        if (other.size >= 1)
+            return Result.Error("There is a playlist with the same title you are using as replacement")
         else {
             many.remove(el[0])
             val (fst, songs) = el[0]
