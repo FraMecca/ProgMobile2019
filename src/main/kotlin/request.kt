@@ -32,7 +32,7 @@ fun parse(req: Buffer): Request {
         "new-song" -> {
             val uri = j.getString("uri")
             val quality = j.getString("quality")
-            when(quality){
+            when (quality) {
                 null -> Request.Error("Missing quality field")
                 else -> Request.NewSong(uri, quality)
             }
@@ -40,14 +40,14 @@ fun parse(req: Buffer): Request {
         "song-done" -> {
             val uri = j.getString("uri")
             val quality = j.getString("quality")
-            when(quality){
+            when (quality) {
                 null -> Request.Error("Missing quality field")
                 else -> Request.SongDone(uri, quality)
             }
         }
         "search" -> {
             val keys = j.getString("keys")
-            when(keys){
+            when (keys) {
                 null -> Request.Error("Missing keys field")
                 else -> Request.Search(keys.split(" "))
             }
@@ -58,21 +58,21 @@ fun parse(req: Buffer): Request {
         "all-by-genre" -> Request.AllByGenre()
         "genre" -> {
             val k = j.getString("key")
-            when(k){
+            when (k) {
                 null -> Request.Error("Missing key field")
                 else -> Request.SingleGenre(k)
             }
         }
         "artist" -> {
             val k = j.getString("key")
-            when(k) {
+            when (k) {
                 null -> Request.Error("Missing key field")
                 else -> Request.SingleArtist(k)
             }
         }
         "album" -> {
             val title = j.getString("key")
-            when(title) {
+            when (title) {
                 null -> Request.Error("Missing key field")
                 else -> Request.SingleAlbum(title)
             }
@@ -128,7 +128,7 @@ fun parse(req: Buffer): Request {
         }
         "conversion-status" -> {
             val uri = j.getString("uri")
-            when(uri){
+            when (uri) {
                 null -> Request.Error("Invalid uri")
                 else -> Request.SongConversionStatus(uri)
             }

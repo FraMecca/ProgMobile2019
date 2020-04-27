@@ -18,12 +18,12 @@ val metadataMap: MutableMap<String, SongMetadata> = LinkedHashMap<String, SongMe
 
 fun incrementReference(sha: String) {
     val r = audioFiles[sha]!!
-    audioFiles[sha] = AudioFileData(r.played+1, r.process, r.size)
+    audioFiles[sha] = AudioFileData(r.played + 1, r.process, r.size)
 }
 
 fun decrementReference(sha: String) {
     val r = audioFiles[sha]!!
-    audioFiles[sha] = AudioFileData(r.played-1, r.process, r.size)
+    audioFiles[sha] = AudioFileData(r.played - 1, r.process, r.size)
 }
 
 fun removeReference(sha: String) {
@@ -136,7 +136,7 @@ fun runConversion(src: String, dst: String, quality: String): Pair<FFMPEGStream,
     }
 }
 
-fun conversionDone(src: String): Boolean{
+fun conversionDone(src: String): Boolean {
     val proc = ProcessBuilder("mediainfo", "--Output=JSON", src)
         .directory(WORKDIR)
         .redirectOutput(ProcessBuilder.Redirect.PIPE)
@@ -157,18 +157,18 @@ fun conversionDone(src: String): Boolean{
     }
 }
 
-fun computeOffset(file: String, percentage: Long): Long{
-    return when(percentage){
+fun computeOffset(file: String, percentage: Long): Long {
+    return when (percentage) {
         0L -> 0L
         98L, 99L, 100L -> {
             val sha = file.substringAfterLast('/').substringBeforeLast(".mp3")
             val diskSize = audioFiles[sha]!!.size
-            diskSize/100L*98
+            diskSize / 100L * 98
         }
         else -> {
             val sha = file.substringAfterLast('/').substringBeforeLast(".mp3")
             val diskSize = audioFiles[sha]!!.size
-            diskSize/100L*percentage
+            diskSize / 100L * percentage
         }
     }
 }

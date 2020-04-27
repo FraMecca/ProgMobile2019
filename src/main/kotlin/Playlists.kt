@@ -105,7 +105,7 @@ object Playlists {
     }
 
     fun addElementsToPlaylist(user: String, title: String, uris: List<String>): Result {
-        if(uris.size == 0)
+        if (uris.size == 0)
             return Result.Error("Uris should be size > 0")
         else {
             val inDb = uris.filter { databaseByUri.containsKey(it) }
@@ -145,8 +145,8 @@ object Playlists {
                 "title" to it.first.second,
                 "#nsongs" to it.second.size,
                 "uris" to
-                        if(it.second == null || it.second.size == 0) emptyList<String>()
-                        else it.second.map { JsonObject(wholeSongFromUri(it))}
+                        if (it.second == null || it.second.size == 0) emptyList<String>()
+                        else it.second.map { JsonObject(wholeSongFromUri(it)) }
             )
         }
         return Result.Value(JsonArray(res))
@@ -155,15 +155,15 @@ object Playlists {
     fun getPlaylists(user: String, title: String): Result {
         val ell = many.filter { it.first.first == user && it.first.second == title }
 
-        if(ell.size == 0)
+        if (ell.size == 0)
             return Result.Error("No playlist with such title")
-        else if(ell.size == 1) {
+        else if (ell.size == 1) {
             val res = ell.map {
                 hashMapOf(
                     "title" to it.first.second,
                     "#nsongs" to it.second.size,
                     "uris" to
-                            if(it.second == null || it.second.size == 0) emptyList<String>()
+                            if (it.second == null || it.second.size == 0) emptyList<String>()
                             else it.second.map { JsonObject(wholeSongFromUri(it)) }
                 )
             }
@@ -183,21 +183,20 @@ object Playlists {
             return "Invalid user"
         else if (ell.size == 0)
             return "There isn't a playlist with the same title and user"
-        else if(uris.size != 0){
+        else if (uris.size != 0) {
             val el = ell[0]
             val newEl = Pair(el.first, el.second.filter { !uriSet.contains(it) })
             if (newEl.second.size == el.second.size)
                 return "No such uri in playlist"
             else
                 return null
-        }
-        else
+        } else
             return null
     }
 
     sealed class Result() {
         class Ok : Result()
-        class Value(val j: JsonArray): Result()
+        class Value(val j: JsonArray) : Result()
         class Error(val msg: String) : Result()
     }
 }

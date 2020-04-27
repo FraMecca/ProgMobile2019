@@ -9,8 +9,8 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.Reader
-import java.nio.file.Paths
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.stream.Collectors
 
 open class Mpd private constructor () {
@@ -36,9 +36,9 @@ var byAlbum = mutableMapOf<String, MutableMap<String, Any>>()
 var byGenre = mutableMapOf<String, MutableMap<String, MutableSet<String>>>()
 
 val nullProcess = ProcessBuilder("true").directory(LIBRARY).start()
-fun checkExistingFiles(): Int{
-    val fileDirMap = Files.list(Paths.get(WORKDIR.path)).
-        collect(Collectors.partitioningBy( { it -> Files.isRegularFile(it)}))
+fun checkExistingFiles(): Int {
+    val fileDirMap = Files.list(Paths.get(WORKDIR.path))
+        .collect(Collectors.partitioningBy({ it -> Files.isRegularFile(it) }))
     println("FILES:::::::::::::::::::::::::::::::::")
     fileDirMap[true]?.forEach {
         val size = File(it.toString()).length()
@@ -151,7 +151,7 @@ fun loadAlbums() {
             val nsongs: Int = byAlbum.get(uri)!!.get("#nsongs") as Int
             val songs: ArrayList<MutableMap<String, String>> = byAlbum.get(uri)!!["songs"] as ArrayList<MutableMap<String, String>>
             songs.add(mutableMapOf("uri" to it.uri, "title" to it.title))
-            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to nsongs+1))
+            byAlbum.put(uri, mutableMapOf("artist" to artist, "img" to img, "uri" to uri, "title" to album, "songs" to songs, "#nsongs" to nsongs + 1))
         }
     }
 }
@@ -231,22 +231,22 @@ fun search(keys: List<String>): MutableList<Mpd.Song> {
 }
 
 fun wholeSongFromUri(uri: String): Map<String, Any> {
-    val song = databaseByUri.getOrElse(uri, { throw Exception("Uri not in DB")})
+    val song = databaseByUri.getOrElse(uri, { throw Exception("Uri not in DB") })
 
     // first try to get album uri by splitting on path
     // else O(n) iterate over the db looking for one with the same name
     val idx = song.uri.reversed().indexOf("/")
-    val path = song.uri.substring(0, song.uri.length - idx-1)
+    val path = song.uri.substring(0, song.uri.length - idx - 1)
 
     val expensiveQuery = {
-        val albums = byAlbum.filter{ (it.value.get("title") as String) == song.album}.values.toList()
+        val albums = byAlbum.filter { (it.value.get("title") as String) == song.album }.values.toList()
         if (albums.size == 0)
             ""
         else
             albums[0]["img"] as String
     }
 
-    val img = when(val it = byAlbum.get(path)) {
+    val img = when (val it = byAlbum.get(path)) {
         null -> expensiveQuery()
         else -> it["img"] as String
     }
