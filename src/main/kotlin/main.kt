@@ -3,8 +3,8 @@ package com.apollon.server.main
 import com.apollon.server.database.byAlbum
 import com.apollon.server.database.byArtist
 import com.apollon.server.database.byGenre
-import com.apollon.server.database.loadDatabase
 import com.apollon.server.database.checkExistingFiles
+import com.apollon.server.database.loadDatabase
 import com.apollon.server.database.search
 import com.apollon.server.request.Request
 import com.apollon.server.request.parse
@@ -15,15 +15,15 @@ import com.apollon.server.streaming.LIBRARY
 import com.apollon.server.streaming.WORKDIR
 import com.apollon.server.streaming.audioFiles
 import com.apollon.server.streaming.checkFileAccess
+import com.apollon.server.streaming.computeOffset
 import com.apollon.server.streaming.computeSha
+import com.apollon.server.streaming.conversionDone
 import com.apollon.server.streaming.decrementReference
 import com.apollon.server.streaming.generateNewFile
 import com.apollon.server.streaming.getFullPath
 import com.apollon.server.streaming.getMetadataFromUri
 import com.apollon.server.streaming.incrementReference
 import com.apollon.server.streaming.removeReference
-import com.apollon.server.streaming.conversionDone
-import com.apollon.server.streaming.computeOffset
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpServerRequest
@@ -114,13 +114,12 @@ fun handle(buf: Buffer): Response {
             val file = File(loc)
             if (!file.exists())
                 Response.Error("file does not exist")
-            else{
-                when(conversionDone(file.absolutePath)){
+            else {
+                when (conversionDone(file.absolutePath)) {
                     true -> Response.SongConversionDone(req.uri)
                     false -> Response.SongConversionOngoing(req.uri)
                 }
             }
-
         }
         is Request.Search -> {
             val results = search(req.keys)
@@ -158,24 +157,24 @@ fun handle(buf: Buffer): Response {
                 }
                 val res = artist.entries.associate {
                     it.key to
-                            if(it.key != "albums")
+                            if (it.key != "albums")
                                 it.value
                             else
                                 albums
                 }
 
                 Response.SingleArtist(JsonObject(res))
-            }else
+            } else
                 Response.Error("Not in db")
         }
         is Request.SingleGenre -> {
-            if (req.key in byGenre){
+            if (req.key in byGenre) {
                 // Response.SingleGenre(req.key, JsonObject(byGenre[req.key] as Map<String, Any>?))
                 val artists = byGenre[req.key]!!.keys.toSet()
                 Response.SingleGenre(req.key, JsonArray(byArtist
                                                             .filter { it.key in artists }
                                                             .map { it.value }))
-            }else
+            } else
                 Response.Error("Not in db")
         }
         is Request.Lyrics -> {
@@ -224,17 +223,17 @@ fun handle(buf: Buffer): Response {
                 is Playlists.Result.Value -> { assert(false); Response.Error("can't go here") }
             }
         }
-        is Request.ListPlaylists ->{
+        is Request.ListPlaylists -> {
             val res = Playlists.listPlaylists(req.user)
-            return when(res){
+            return when (res) {
                 is Playlists.Result.Value -> Response.ListPlaylist(res.j)
                 is Playlists.Result.Error -> Response.Error(res.msg)
                 is Playlists.Result.Ok -> { assert(false); Response.Error("can't go here") }
             }
         }
-        is Request.GetPlaylist ->{
+        is Request.GetPlaylist -> {
             val res = Playlists.getPlaylists(req.user, req.title)
-            return when(res){
+            return when (res) {
                 is Playlists.Result.Value -> Response.GetPlaylist(res.j[0])
                 is Playlists.Result.Error -> Response.Error(res.msg)
                 is Playlists.Result.Ok -> { assert(false); Response.Error("can't go here") }
@@ -254,12 +253,12 @@ fun routing(vertx: Vertx, req: HttpServerRequest) {
                 if (requestedFile.contains('+')) {
                     val idx = requestedFile.indexOf('+')
                     val len = requestedFile.length
-                    Pair(requestedFile.substring(0, idx), requestedFile.substring(idx+1, len).toLong())
+                    Pair(requestedFile.substring(0, idx), requestedFile.substring(idx + 1, len).toLong())
                 } else {
                     Pair(requestedFile, 0.toLong())
                 }
-            } ()
-            println("ASDASDDAS: "+offset.toString())
+            }()
+            println("ASDASDDAS: " + offset.toString())
             try {
                 if (checkFileAccess(file, WORKDIR) && File(file).exists()) {
                     val realOffset = computeOffset(file, offset)
@@ -309,7 +308,7 @@ fun main(args: Array<String>) {
     loadDatabase(DATABASE)
     Log.info("Song Database loaded")
     val rn = checkExistingFiles()
-    Log.info("Loaded "+rn.toString()+" existing files")
+    Log.info("Loaded " + rn.toString() + " existing files")
 
     val vertx = Vertx.vertx()
     val server = vertx.createHttpServer()
