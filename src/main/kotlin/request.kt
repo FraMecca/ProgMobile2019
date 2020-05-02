@@ -56,6 +56,7 @@ fun parse(req: Buffer): Request {
         "all-by-artist" -> Request.AllByArtist()
         "all-by-album" -> Request.AllByAlbum()
         "all-by-genre" -> Request.AllByGenre()
+        "all-songs" -> Request.AllSongs()
         "genre" -> {
             val k = j.getString("key")
             when (k) {
@@ -146,6 +147,7 @@ sealed class Request {
     class AllByGenre() : Request()
     class AllByArtist() : Request()
     class AllByAlbum() : Request()
+    class AllSongs() : Request()
     class SingleAlbum(val title: String) : Request()
     class SingleArtist(val name: String) : Request()
     class SingleGenre(val key: String) : Request()

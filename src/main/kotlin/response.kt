@@ -17,6 +17,7 @@ sealed class Response {
     class AllByArtist(val all: JsonArray) : Response()
     class AllByAlbum(val all: JsonArray) : Response()
     class AllByGenre(val all: JsonArray) : Response()
+    class AllSongs(val all: JsonArray) : Response()
     class SingleGenre(val key: String, val artists: JsonArray) : Response()
     class SingleArtist(val content: JsonObject) : Response()
     class SingleAlbum(val content: JsonObject) : Response()
@@ -36,6 +37,7 @@ fun Response.asString(): String {
         is Response.AllByArtist -> "Response.AllByArtist: " + this.all.size()
         is Response.AllByAlbum -> "Response.AllByAlbum: " + this.all.size()
         is Response.AllByGenre -> "Response.AllByGenre: " + this.all.size()
+        is Response.AllSongs -> "Response.AllSongs: " + this.all.size()
         is Response.SingleAlbum -> "Response.SingleAlbum"
         is Response.SingleGenre -> "Response.SingleGenre"
         is Response.SingleArtist -> "Response.SingleArtist"
@@ -139,6 +141,11 @@ fun generateReply(vertx: Vertx, httpResp: HttpServerResponse, response: Response
                 "values" to response.all
             ))
         is Response.AllByArtist -> sendMap(
+            hashMapOf(
+                "response" to "all-artists",
+                "values" to response.all
+            ))
+        is Response.AllSongs -> sendMap(
             hashMapOf(
                 "response" to "all-artists",
                 "values" to response.all

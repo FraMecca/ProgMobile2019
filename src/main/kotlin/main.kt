@@ -1,6 +1,7 @@
 package com.apollon.server.main
 
 import com.apollon.server.database.byAlbum
+import com.apollon.server.database.database
 import com.apollon.server.database.byArtist
 import com.apollon.server.database.byGenre
 import com.apollon.server.database.checkExistingFiles
@@ -135,9 +136,12 @@ fun handle(buf: Buffer): Response {
             Response.AllByAlbum(all)
         }
         is Request.AllByGenre -> {
-            println(byGenre["Progressive Rock"]!!.size)
             val all = JsonArray(byGenre.map { listOf(it.key, it.value.size) }.toList())
             Response.AllByGenre(all)
+        }
+        is Request.AllSongs -> {
+            val all = JsonArray(database.map { it -> it.json })
+            Response.AllSongs(all)
         }
         is Request.SingleAlbum -> {
             if (req.title in byAlbum)

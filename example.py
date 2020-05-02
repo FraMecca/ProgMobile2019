@@ -20,6 +20,10 @@ def allgenre():
     resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "all-by-genre"}))
     return resp
 
+def allsongs():
+    resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "all-songs"}))
+    return resp
+
 def allalbums():
     resp = r.post(URL, data=j.dumps({"user":"mario","password":"rossi", "action": "all-by-album"}))
     return resp
