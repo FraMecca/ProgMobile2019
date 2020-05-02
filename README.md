@@ -175,6 +175,35 @@ AlbumEnumerated Objects
 }
 ```
 
+## Get List of all songs
+
+```
+{
+    "user": "mario",
+    "password": "rossi",
+    "action": "all-songs",
+}
+{'response': 'all-songs,
+ 'values': [
+            {
+             'album': 'Darwin',
+             'albumArtist': '',
+             'artist': 'Banco Del Mutuo Soccorso',
+             'composer': '',
+             'date': '1972',
+             'disc': '',
+             'genre': 'Progressive Rock',
+             'performer': '',
+             'title': 'Ed Ora Io Domando Tempo Al Tempo Ed Egli Mi Risponde ... Non Ne Ho !',
+             'track': '7',
+             'type': 'song',
+             'uri': 'Banco.del.Mutuo.Soccorso/1972-Darwin/07 - Miserere Alla Storia.flac'
+            }
+            ...
+           ]
+}
+```
+
 
 ### Artist
 
