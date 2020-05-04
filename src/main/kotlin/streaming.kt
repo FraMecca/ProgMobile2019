@@ -8,7 +8,8 @@ import java.io.IOException
 import java.security.MessageDigest
 
 val DATABASE = "/home/user/.mpd/db2.json"
-val WORKDIR = File("/tmp/apollon/")
+// val WORKDIR = File("/tmp/apollon/")
+val WORKDIR = File("/media/asparagi/vibbra/tmp/")
 val LIBRARY = File("/media/asparagi/vibbra/")
 
 data class AudioFileData(val played: Int, val process: Process, val size: Long)

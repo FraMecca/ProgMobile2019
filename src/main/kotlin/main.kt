@@ -140,7 +140,15 @@ fun handle(buf: Buffer): Response {
             Response.AllByGenre(all)
         }
         is Request.AllSongs -> {
-            val all = JsonArray(database.map { it -> it.json })
+            val songsToImg = byAlbum.flatMap { entry -> 
+                val songs = entry.value["songs"] as ArrayList<MutableMap<String, String>>;
+                songs.map { it -> Pair(it["uri"], entry.value["img"]) }
+            }.toMap()
+            val all = JsonArray(
+                database
+                    .map { it.json }
+                    .map { it.put("img", songsToImg[it.getString("uri", "")]) }
+            )
             Response.AllSongs(all)
         }
         is Request.SingleAlbum -> {

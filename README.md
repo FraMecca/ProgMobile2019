@@ -197,7 +197,8 @@ AlbumEnumerated Objects
              'title': 'Ed Ora Io Domando Tempo Al Tempo Ed Egli Mi Risponde ... Non Ne Ho !',
              'track': '7',
              'type': 'song',
-             'uri': 'Banco.del.Mutuo.Soccorso/1972-Darwin/07 - Miserere Alla Storia.flac'
+             'uri': 'Banco.del.Mutuo.Soccorso/1972-Darwin/07 - Miserere Alla Storia.flac',
+             'img': 'http://coverartarchive.org/release/85f0b595-c7d4-4516-a82b-48854bedc78a/15697581357-250.jpg'
             }
             ...
            ]
