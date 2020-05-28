@@ -1,9 +1,5 @@
 # Apollon Server
 
-## Configuration File
-
-TODO
-
 ## Routing
 
 There are two possible routes:
@@ -282,16 +278,6 @@ AlbumEnumerated Objects
  'response': 'genre',
  'key': 'Rock'}
 
-```
-
-### List all:  Genre or Albums or Artists
-
-```
-{
-    "user": "mario",
-    "password": "rossi",
-    "action": "all-by-album",
-}
 ```
 
 Reponse is a big dictionary of album/artist/genre objects
